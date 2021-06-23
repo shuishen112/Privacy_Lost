@@ -1,7 +1,7 @@
 '''
 Author: Zhan
 Date: 2021-03-12 14:59:58
-LastEditTime: 2021-06-14 12:20:38
+LastEditTime: 2021-06-22 17:40:36
 LastEditors: Please set LastEditors
 Description: In User Settings Edit
 FilePath: /undefined/Users/zhansu/Documents/phd/privacy_lost/second_week/warc_test.py
@@ -23,7 +23,7 @@ import pandas as pd
 thirdparties = pd.read_csv("labeled-thirdparties.csv",sep = '\t',names = ['domain','registration_org','registration_country','num_embeddings','num_embeddings_javascript','num_embeddings_iframe','num_embeddings_image','num_embeddings_link','category','company'])
 
 trackers = thirdparties['domain'].to_list()
-print(trackers)
+# print(trackers)
 
 def get_text_bs(html):
     tree = BeautifulSoup(html, 'lxml')
@@ -54,18 +54,33 @@ def get_text_bs(html):
 
 
 def get_text_selectolax(html):
-    tree = HTMLParser(html)
-
-    if tree.body is None:
-        return None
-
-    for tag in tree.css('style'):
-        tag.decompose()
-
-    text = tree.body.text(separator='\n')
-
-
-    return text
+    
+    try:
+        tree = HTMLParser(html)
+    
+        
+        if tree.body is None:
+            return None
+        
+#         找到a
+        for node in tree.css('a'):
+            if 'href' in node.attributes:
+                url = node.attributes['href']
+                domain = str(urlparse(url).netloc)           
+                if domain in trackers:
+                    print(domain)
+        
+        for node in tree.css('script'):
+            if 'src' in node.attributes:             
+                url = node.attributes['src']
+                domain = str(urlparse(url).netloc)
+                if domain in trackers:
+                    print(domain)
+            
+    except Exception as e:
+        print(e)
+    finally:
+        return 'hello'
 
 
 def read_doc(record, parser=get_text_selectolax):
@@ -115,4 +130,4 @@ def process_warc(file_name, parser, limit=10000):
 #         except Exception as e:
 #             print(e)
 
-process_warc('CC-MAIN-20210518125638-20210518155638-00357.warc.gz',get_text_bs,100)
+process_warc('CC-MAIN-20210505203909-20210505233909-00000.warc.gz',get_text_bs,1000)

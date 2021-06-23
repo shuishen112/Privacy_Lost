@@ -1,7 +1,7 @@
 '''
 Author: Zhan
 Date: 2021-06-15 23:46:43
-LastEditTime: 2021-06-18 14:36:23
+LastEditTime: 2021-06-23 12:21:02
 LastEditors: Please set LastEditors
 Description: In User Settings Edit
 FilePath: /common_crawl/education_extraction.py
@@ -17,6 +17,8 @@ import re
 from collections import Counter
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse
+from selectolax.parser import HTMLParser
+
 
 from io import BytesIO
 from tempfile import TemporaryFile
@@ -44,7 +46,7 @@ spark = SparkSession \
 input_bucket = 's3://zhan-commoncrawl/Unsaved/Unsaved/2021/06/18/tables/22e228f2-56b2-461e-b144-b054d7b1cbb4/'
 df = spark.read.parquet(input_bucket)
 df.createOrReplaceTempView("education_file_list")
-sqlDF = spark.sql('SELECT * from education_file_list')
+sqlDF = spark.sql('SELECT * from education_file_list limit 10000')
 
 
 warc_fileanme_list = sqlDF.select('warc_filename').rdd.flatMap(lambda x:x).collect()
@@ -69,20 +71,6 @@ tracker_list = sqlDF_tracker.select('Domain').rdd.flatMap(lambda x:x).collect()
 print(tracker_list[:10])
 
 
-# %%
-class Args:
-    warc_parse_http_header = True
-    records_processed = None
-    warc_input_processed = None
-    warc_input_failed = None
-    num_input_partitions = 400
-    num_output_partitions = 10
-    output = "s3://zhan-commoncrawl/tag_count_output_3"
-    output_format = "csv"
-    output_compression = "gzip"
-    output_option = []
-    local_temp_dir = None
-    spark_profiler = False
 
 
 
@@ -336,7 +324,55 @@ class JupyterCCSparkJob(object):
                 return True
         return False
 
-
+def get_text_selectolax(html):
+    trackers = []
+    try:
+        tree = HTMLParser(html)
+        if tree.body is None:
+            return None
+        
+        for node in tree.tags('style'):
+            node.decompose()
+        
+#         找到a
+        for node in tree.css('a'):
+            if 'href' in node.attributes:
+                url = node.attributes['href']
+                domain = str(urlparse(url).netloc)
+            
+                domain = '.'.join(domain.split('.')[-2:])
+                if len(domain) >= 2:
+                    trackers.append(domain)
+        
+        for node in tree.css('script'):
+            if 'src' in node.attributes:             
+                url = node.attributes['src']
+                domain = str(urlparse(url).netloc)
+                domain = '.'.join(domain.split('.')[-2:])
+                if len(domain) >= 2:
+                    trackers.append(domain)
+                    
+        for node in tree.css('iframe'):
+            if 'src' in node.attributes:             
+                url = node.attributes['src']
+                domain = str(urlparse(url).netloc)
+                domain = '.'.join(domain.split('.')[-2:])
+                if len(domain) >= 2:
+                    trackers.append(domain)
+                
+        for node in tree.css('img'):
+            if 'src' in node.attributes:             
+                url = node.attributes['src']
+                domain = str(urlparse(url).netloc)
+                domain = '.'.join(domain.split('.')[-2:])
+                if len(domain) >= 2:
+                    trackers.append(domain)
+            
+            
+    except Exception as e:
+        print(e)
+    
+    return ','.join(list(set(trackers)))
 
 def get_text_bs(html):
     
@@ -396,7 +432,7 @@ class Trackers_extraction_job(JupyterCCSparkJob):
         if domain not in url_host_name_list:
             return
         text = record.content_stream().read()
-        trackers = get_text_bs(text)
+        trackers = get_text_selectolax(text)
         if url and url.strip() != '' and trackers:
             yield domain, trackers
 
