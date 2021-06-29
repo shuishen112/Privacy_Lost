@@ -1,7 +1,7 @@
 '''
 Author: Zhan
 Date: 2021-06-15 23:46:43
-LastEditTime: 2021-06-23 12:21:02
+LastEditTime: 2021-06-29 11:59:28
 LastEditors: Please set LastEditors
 Description: In User Settings Edit
 FilePath: /common_crawl/education_extraction.py
@@ -43,10 +43,10 @@ spark = SparkSession \
     .config("spark.some.config.option", "some-value") \
     .getOrCreate()
 
-input_bucket = 's3://zhan-commoncrawl/Unsaved/Unsaved/2021/06/18/tables/22e228f2-56b2-461e-b144-b054d7b1cbb4/'
+input_bucket = 's3://zhan-commoncrawl/Unsaved/Unsaved/2021/06/25/tables/7784c78d-d038-429b-ad5c-128bb295a524/'
 df = spark.read.parquet(input_bucket)
 df.createOrReplaceTempView("education_file_list")
-sqlDF = spark.sql('SELECT * from education_file_list limit 10000')
+sqlDF = spark.sql('SELECT * from education_file_list limit 60')
 
 
 warc_fileanme_list = sqlDF.select('warc_filename').rdd.flatMap(lambda x:x).collect()
@@ -221,7 +221,8 @@ class JupyterCCSparkJob(object):
 
         # input_data = sc.textFile(','.join(warc_fileanme_list))
            
-        output = input_data.mapPartitionsWithIndex(self.process_warcs).reduceByKey(lambda x,y:x,numPartitions = self.args.num_output_partitions)
+        output = input_data.mapPartitionsWithIndex(self.process_warcs)
+        # .reduceByKey(lambda x,y:x,numPartitions = self.args.num_output_partitions)
 
         # print(output.count())
         # print(output.take(10))
@@ -289,10 +290,15 @@ class JupyterCCSparkJob(object):
            WARC record offset and length."""
     
         for record in archive_iterator:
-            for res in self.process_record(record):   
-                yield res
-         
+            rec_type = record.rec_type
+            url = record.rec_headers.get_header('WARC-Target-URI')
             self.records_processed.add(1)
+            # 判断需不需要过滤
+            
+            if record.rec_type == 'response' and (urlparse(url).netloc in url_host_name_list):
+                res = self.process_record(record)
+                return res
+
             # WARC record offset and length should be read after the record
             # has been processed, otherwise the record content is consumed
             # while offset and length are determined:
@@ -341,7 +347,7 @@ def get_text_selectolax(html):
                 domain = str(urlparse(url).netloc)
             
                 domain = '.'.join(domain.split('.')[-2:])
-                if len(domain) >= 2:
+                if len(domain) >= 2 and domain in tracker_list:
                     trackers.append(domain)
         
         for node in tree.css('script'):
@@ -349,7 +355,7 @@ def get_text_selectolax(html):
                 url = node.attributes['src']
                 domain = str(urlparse(url).netloc)
                 domain = '.'.join(domain.split('.')[-2:])
-                if len(domain) >= 2:
+                if len(domain) >= 2 and domain in tracker_list:
                     trackers.append(domain)
                     
         for node in tree.css('iframe'):
@@ -357,7 +363,7 @@ def get_text_selectolax(html):
                 url = node.attributes['src']
                 domain = str(urlparse(url).netloc)
                 domain = '.'.join(domain.split('.')[-2:])
-                if len(domain) >= 2:
+                if len(domain) >= 2 and domain in tracker_list:
                     trackers.append(domain)
                 
         for node in tree.css('img'):
@@ -365,7 +371,7 @@ def get_text_selectolax(html):
                 url = node.attributes['src']
                 domain = str(urlparse(url).netloc)
                 domain = '.'.join(domain.split('.')[-2:])
-                if len(domain) >= 2:
+                if len(domain) >= 2 and domain in tracker_list:
                     trackers.append(domain)
             
             
