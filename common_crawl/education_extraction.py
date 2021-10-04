@@ -1,7 +1,7 @@
 '''
 Author: Zhan
 Date: 2021-06-15 23:46:43
-LastEditTime: 2021-07-02 12:09:49
+LastEditTime: 2021-08-22 16:59:56
 LastEditors: Please set LastEditors
 Description: In User Settings Edit
 FilePath: /common_crawl/education_extraction.py
@@ -33,6 +33,9 @@ from pyspark.sql import SQLContext, SparkSession
 from pyspark.sql.types import StructType, StructField, StringType, LongType
 from pyspark.sql import functions as F
 import tempfile
+
+regex = "((?<=[^a-zA-Z0-9])(?:https?\:\/\/|[a-zA-Z0-9]{1,}\.{1}|\b)(?:\w{1,}\.{1}){1,5}(?:com|org|edu|gov|uk|net|ca|de|jp|fr|au|us|ru|ch|it|nl|se|no|es|mil|iq|io|ac|ly|sm){1}(?:\/[a-zA-Z0-9]{1,})*)"
+
 
 LOGGING_FORMAT = '%(asctime)s %(levelname)s %(name)s: %(message)s'
 
@@ -120,12 +123,12 @@ print(warc_filename_list[:10])
 # 获得trakcer标志
 
 
-tracker_bucket = 's3://aws-emr-resources-235671948910-us-east-1/labeled_third_party/'
+tracker_bucket = 's3://aws-emr-resources-235671948910-us-east-1/edu_trackers/'
 df_tracker = spark.read.option("header",True).csv(tracker_bucket)
 df_tracker.createOrReplaceTempView("tracker_list")
-sqlDF_tracker = spark.sql("SELECT Domain, Category, Company from tracker_list")
+sqlDF_tracker = spark.sql("SELECT domain from tracker_list")
 print(sqlDF_tracker.show())
-tracker_list = sqlDF_tracker.select('Domain').rdd.flatMap(lambda x:x).collect()
+tracker_list = sqlDF_tracker.select('domain').rdd.flatMap(lambda x:x).collect()
 print(tracker_list[:10])
 
     
@@ -331,16 +334,13 @@ def get_text_selectolax(html):
             node.decompose()
         
 #         找到a
-        for node in tree.css('a'):
+        for node in tree.css('a,link,script,iframe,img'):
             if 'href' in node.attributes:
                 url = node.attributes['href']
                 domain = str(urlparse(url).netloc)
-            
                 domain = '.'.join(domain.split('.')[-2:])
                 if len(domain) >= 2 and domain in tracker_list:
                     trackers.append(domain)
-        
-        for node in tree.css('script'):
             if 'src' in node.attributes:             
                 url = node.attributes['src']
                 domain = str(urlparse(url).netloc)
@@ -348,21 +348,16 @@ def get_text_selectolax(html):
                 if len(domain) >= 2 and domain in tracker_list:
                     trackers.append(domain)
                     
-        for node in tree.css('iframe'):
-            if 'src' in node.attributes:             
-                url = node.attributes['src']
-                domain = str(urlparse(url).netloc)
-                domain = '.'.join(domain.split('.')[-2:])
-                if len(domain) >= 2 and domain in tracker_list:
-                    trackers.append(domain)
-                
-        for node in tree.css('img'):
-            if 'src' in node.attributes:             
-                url = node.attributes['src']
-                domain = str(urlparse(url).netloc)
-                domain = '.'.join(domain.split('.')[-2:])
-                if len(domain) >= 2 and domain in tracker_list:
-                    trackers.append(domain)
+            if "type" in node.attributes and node.attributes['type'] == 'text/javascript':
+                text = node.text()
+                if ("google-analytics.com" in text):
+                    trackers.append("google-analytics.com")
+                result = re.findall(regex,text)
+                for url in result:
+                    domain = str(urlparse(url).netloc)
+                    domain = '.'.join(domain.split('.')[-2:])
+                    if len(domain) >= 2 and domain in tracker_list:
+                        trackers.append(domain)
             
             
     except Exception as e:

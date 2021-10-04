@@ -1,7 +1,7 @@
 '''
 Author: Zhan
 Date: 2021-03-12 14:59:58
-LastEditTime: 2021-06-22 17:40:36
+LastEditTime: 2021-08-22 16:44:36
 LastEditors: Please set LastEditors
 Description: In User Settings Edit
 FilePath: /undefined/Users/zhansu/Documents/phd/privacy_lost/second_week/warc_test.py
@@ -13,6 +13,7 @@ from urllib.parse import urlparse,urlsplit
 from time import time
 
 import warc
+import re
 from bs4 import BeautifulSoup
 from selectolax.parser import HTMLParser
 from urllib.parse import urlparse
@@ -22,7 +23,9 @@ import pandas as pd
 
 thirdparties = pd.read_csv("labeled-thirdparties.csv",sep = '\t',names = ['domain','registration_org','registration_country','num_embeddings','num_embeddings_javascript','num_embeddings_iframe','num_embeddings_image','num_embeddings_link','category','company'])
 
-trackers = thirdparties['domain'].to_list()
+regex = "((?<=[^a-zA-Z0-9])(?:https?\:\/\/|[a-zA-Z0-9]{1,}\.{1}|\b)(?:\w{1,}\.{1}){1,5}(?:com|org|edu|gov|uk|net|ca|de|jp|fr|au|us|ru|ch|it|nl|se|no|es|mil|iq|io|ac|ly|sm){1}(?:\/[a-zA-Z0-9]{1,})*)"
+
+tracker_list = thirdparties['domain'].to_list()
 # print(trackers)
 
 def get_text_bs(html):
@@ -40,20 +43,25 @@ def get_text_bs(html):
     for aa in a:
         url = aa.get('href')
         domain = urlparse(url).netloc
-        if domain in trackers:
-            print(domain)
+        if domain in tracker_list:
+            print("href",domain)
+
         # print(aa.get('href'))
     s = body.find_all('script')
     for ss in s:
         url = ss.get('src')
-        domain = urlparse(url).netloc
-        if domain in trackers:
-            print(domain)
+        domain = str(urlparse(url).netloc)
+        domain = '.'.join(domain.split('.')[-2:])
+        if domain in tracker_list:
+            print("script",domain)
         # print(ss.get('src'))
     return text
 
 
 def get_text_selectolax(html):
+
+
+    trackers = []
     
     try:
         tree = HTMLParser(html)
@@ -61,26 +69,41 @@ def get_text_selectolax(html):
         
         if tree.body is None:
             return None
+
+        for node in tree.tags('style'):
+            node.decompose()
         
 #         找到a
-        for node in tree.css('a'):
+        for node in tree.css('a,script,iframe,img,link'):
             if 'href' in node.attributes:
                 url = node.attributes['href']
-                domain = str(urlparse(url).netloc)           
-                if domain in trackers:
-                    print(domain)
-        
-        for node in tree.css('script'):
+                domain = str(urlparse(url).netloc)
+                domain = '.'.join(domain.split('.')[-2:])
+                if len(domain) >= 2 and domain in tracker_list:
+                    trackers.append(domain)
+
+            if "type" in node.attributes and node.attributes['type'] == 'text/javascript':
+                    text = node.text()
+                    if ("google-analytics.com" in text):
+                        print("google-analytics.com")
+                    result = re.findall(regex,text)
+                    for url in result:
+                        domain = str(urlparse(url).netloc)
+                        domain = '.'.join(domain.split('.')[-2:])
+                        if len(domain) >= 2 and domain in tracker_list:
+                            print(domain)
             if 'src' in node.attributes:             
                 url = node.attributes['src']
                 domain = str(urlparse(url).netloc)
-                if domain in trackers:
-                    print(domain)
+                domain = '.'.join(domain.split('.')[-2:])
+                if len(domain) >= 2 and domain in tracker_list:
+                    trackers.append(domain)
+                      
             
     except Exception as e:
         print(e)
     finally:
-        return 'hello'
+        return trackers
 
 
 def read_doc(record, parser=get_text_selectolax):
@@ -130,4 +153,4 @@ def process_warc(file_name, parser, limit=10000):
 #         except Exception as e:
 #             print(e)
 
-process_warc('CC-MAIN-20210505203909-20210505233909-00000.warc.gz',get_text_bs,1000)
+process_warc('CC-MAIN-20210513173321-20210513203321-00163.warc',get_text_selectolax,100000)
