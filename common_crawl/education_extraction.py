@@ -1,7 +1,7 @@
 '''
 Author: Zhan
 Date: 2021-06-15 23:46:43
-LastEditTime: 2021-08-22 16:59:56
+LastEditTime: 2022-01-01 18:42:37
 LastEditors: Please set LastEditors
 Description: In User Settings Edit
 FilePath: /common_crawl/education_extraction.py
@@ -335,6 +335,9 @@ def get_text_selectolax(html):
         
 #         找到a
         for node in tree.css('a,link,script,iframe,img'):
+            text = node.text()
+            if ("google-analytics.com" in text):
+                trackers.append("google-analytics.com")
             if 'href' in node.attributes:
                 url = node.attributes['href']
                 domain = str(urlparse(url).netloc)
