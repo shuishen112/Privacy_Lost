@@ -1,7 +1,7 @@
 '''
 Author: Zhan
 Date: 2021-06-15 23:46:43
-LastEditTime: 2022-01-19 13:05:42
+LastEditTime: 2022-01-01 20:23:51
 LastEditors: Please set LastEditors
 Description: In User Settings Edit
 FilePath: /common_crawl/education_extraction.py
@@ -24,7 +24,6 @@ from tempfile import TemporaryFile
 
 import boto3
 import botocore
-import tldextract
 
 from warcio.archiveiterator import ArchiveIterator
 from warcio.recordloader import ArchiveLoadFailed
@@ -109,7 +108,7 @@ df.createOrReplaceTempView("education_file_list")
 if args_all.debug == 1:
     sqlDF = spark.sql('SELECT * from education_file_list limit {}'.format(args_all.num_of_list))
 elif args_all.debug == 0:
-    sqlDF = spark.sql('SELECT warc_filename,warc_record_offset,warc_record_length from education_file_list')
+    sqlDF = spark.sql('SELECT crawl,warc_filename,warc_record_offset,warc_record_length from education_file_list')
 else:
     print("exit")
     exit(0)
@@ -119,27 +118,6 @@ print("num of filelist:{}".format(len(warc_filename_list)))
 print(warc_filename_list[:10])
 # url_host_name_list = sqlDF.select('url_host_name').rdd.flatMap(lambda x:x).collect()
 # print(url_host_name_list[:10])
-
-
-# 获得trakcer标志
-
-# tracker_bucket = 's3://aws-emr-resources-235671948910-us-east-1/labeled_third_party/'
-# df_tracker = spark.read.option("header",True).csv(tracker_bucket)
-# df_tracker.createOrReplaceTempView("tracker_list")
-# sqlDF_tracker = spark.sql("SELECT Domain, Category, Company from tracker_list")
-# print(sqlDF_tracker.show())
-# tracker_list = sqlDF_tracker.select('Domain').rdd.flatMap(lambda x:x).collect()
-# print(tracker_list[:10])
-# tracker_list = list(map(lambda x:tldextract.extract(x).domain,tracker_list))
-
-tracker_bucket = 's3://aws-emr-resources-235671948910-us-east-1/edu_trackers/'
-df_tracker = spark.read.option("header",True).csv(tracker_bucket)
-df_tracker.createOrReplaceTempView("tracker_list")
-sqlDF_tracker = spark.sql("SELECT domain from tracker_list")
-print(sqlDF_tracker.show())
-tracker_list = sqlDF_tracker.select('domain').rdd.flatMap(lambda x:x).collect()
-print(tracker_list[:10])
-tracker_list = list(map(lambda x:tldextract.extract(x).domain,tracker_list))
 
 
     
@@ -253,11 +231,13 @@ class JupyterCCSparkJob(object):
             warc_filename = item['warc_filename']
             offset = item['warc_record_offset']
             length = item['warc_record_length']
+            
+            crawl_time = item['crawl']
             self.warc_input_processed.add(1)
            
             self.get_logger().info('Reading from S3 {}'.format(warc_filename))
             
-            offset_end = offset + length - 1
+            offset_end = int(offset) + int(length) - 1
             byte_range = 'bytes={offset}-{end}'.format(offset=offset, end=offset_end)
 
             warctemp = None
@@ -269,13 +249,14 @@ class JupyterCCSparkJob(object):
                 self.warc_input_failed.add(1)
                 continue
             stream = warctemp
+
             no_parse = (not self.warc_parse_http_header)
            
             try:
                 archive_iterator = ArchiveIterator(stream,
                                                    no_record_parse=no_parse, arc2warc = True)
                 
-                for res in self.iterate_records(warc_filename, archive_iterator):
+                for res in self.iterate_records(crawl_time, archive_iterator):
 
                     yield res
             except ArchiveLoadFailed as exception:
@@ -285,10 +266,10 @@ class JupyterCCSparkJob(object):
             finally:
                 stream.close()
 
-    def process_record(self, record):
+    def process_record(self,record,crawl_time = None):
         raise NotImplementedError('Processing record needs to be customized')
 
-    def iterate_records(self, _warc_uri, archive_iterator):
+    def iterate_records(self, crawl_time, archive_iterator):
         """Iterate over all WARC records. This method can be customized
            and allows to access also values from ArchiveIterator, namely
            WARC record offset and length."""
@@ -296,13 +277,10 @@ class JupyterCCSparkJob(object):
         for record in archive_iterator:
             rec_type = record.rec_type
             url = record.rec_headers.get_header('WARC-Target-URI')
+            for res in self.process_record(record,crawl_time):   
+                yield res
+         
             self.records_processed.add(1)
-            # 判断需不需要过滤
-            
-            if record.rec_type == 'response':
-                res = self.process_record(record)
-                return res
-
             # WARC record offset and length should be read after the record
             # has been processed, otherwise the record content is consumed
             # while offset and length are determined:
@@ -343,73 +321,34 @@ def get_text_selectolax(html):
         
         for node in tree.tags('style'):
             node.decompose()
-        
-#         找到a
+            
+        #         找到a
         for node in tree.css('a,link,script,iframe,img'):
             text = node.text()
             if ("google-analytics" in text):
-                trackers.append("google-analytics")
+                trackers.append("google-analytics.com")
             if 'href' in node.attributes:
                 url = node.attributes['href']
-                domain = tldextract.extract(str(urlparse(url).netloc)).domain
-                if domain in tracker_list:
-                    trackers.append(domain)
+                domain = str(urlparse(url).netloc)
+#                 domain = '.'.join(domain.split('.')[-2:])
+                if len(domain) >= 2:
+                    trackers.append(domain) # 这里我们认为所有的third-party request 都是trackers
             if 'src' in node.attributes:             
                 url = node.attributes['src']
                 domain = str(urlparse(url).netloc)
-                domain = tldextract.extract(str(urlparse(url).netloc)).domain
-                if domain in tracker_list:
+#                 domain = '.'.join(domain.split('.')[-2:])
+                if len(domain) >= 2:
                     trackers.append(domain)
                     
             if "type" in node.attributes and node.attributes['type'] == 'text/javascript':
-    
+                
                 result = re.findall(regex,text)
                 for url in result:
-                    domain = tldextract.extract(str(urlparse(url).netloc)).domain
-                    if domain in tracker_list:
+                    domain = str(urlparse(url).netloc)
+#                     domain = '.'.join(domain.split('.')[-2:])
+                    if len(domain) >= 2:
                         trackers.append(domain)
-            
-            
-    except Exception as e:
-        print(e)
-    
-    return ','.join(list(set(trackers)))
-
-def get_text_bs(html):
-    
-    try:
-        tree = BeautifulSoup(html, 'lxml')
-    
-        trackers = []
-
-        body = tree.body
-        if body is None:
-            return None
-
-        for tag in body.select('style'):
-            tag.decompose()
-
-        text = body.get_text(separator='\n')
-        a = body.find_all('a')
-        for aa in a:
-            url = aa.get('href')
-            domain = str(urlparse(url).netloc)
-#             如果domain的长度小于三，就不加入tracker
-
-#             判断domain 是不是trackers
-
-            domain = '.'.join(domain.split('.')[-2:])
-            if len(domain) >= 2 and domain in tracker_list:
-                trackers.append(domain)
-
-        s = body.find_all('script')
-        for ss in s:
-            url = ss.get('src')
-            domain = str(urlparse(url).netloc)
-            domain = '.'.join(domain.split('.')[-2:])
-            if len(domain) >= 2 and domain in tracker_list:
-                trackers.append(domain)
-
+                        
     except Exception as e:
         print(e)
     
@@ -423,16 +362,15 @@ class Trackers_extraction_job(JupyterCCSparkJob):
     # match HTML tags (element names) on binary HTML data
     html_tag_pattern = re.compile(b'<([a-z0-9]+)')
 
-    def process_record(self, record):
+    def process_record(self, record, crawl_time):
         
         if record.rec_type != 'response':
             return
         url = record.rec_headers.get_header('WARC-Target-URI')
-        domain = urlparse(url).netloc
         text = record.content_stream().read()
         trackers = get_text_selectolax(text)
-        if url and url.strip() != '':
-            yield domain, trackers
+        if url and url.strip() != '': 
+            yield "#".join([url,crawl_time]), trackers
             
 job = Trackers_extraction_job()
 job.run()
