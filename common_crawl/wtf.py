@@ -14,7 +14,13 @@ import requests
 import pandas as pd 
 from tqdm import tqdm
 import time
+import numpy as np
+from multiprocessing import  Pool
 tqdm.pandas()
+
+# from pandarallel import pandarallel
+# pandarallel.initialize(progress_bar=True)
+
 def collect_dataset(row):
     url = row['url']
     history_url = row['history_url']
@@ -38,15 +44,19 @@ def collect_dataset(row):
             writer.write_record(record)
     except Exception as e:
         print(e)
-t = time.time()
-df = pd.read_csv("dataset_archive/edu_history_2021.csv")
+# t = time.time()
 
-df.progress_apply(collect_dataset,axis = 1)
 
-print(time.time() - t)
-exit()
+# df = pd.read_csv("dataset_archive/edu_history_2021.csv")
+
+# df.progress_apply(collect_dataset,axis = 1)
+
+# print(time.time() - t)
+# exit()
 
 # get the tracking information
+
+t = time.time()
 import glob
 from warc_test import get_text_selectolax,process_warc_from_archive
 files = glob.glob("dataset_archive/*.gz")
@@ -64,5 +74,6 @@ for file in files:
 
 df_edu_history = pd.DataFrame({'url':urls,'3p-domain':trackesr})
 df_edu_history.to_csv("dataset_archive/edu_trackers_202110.csv",index = None)
+print(time.time() - t)
 
 # process_warc_from_archive("dataset_archive/www.calhoun.org",parser=get_text_selectolax)

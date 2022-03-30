@@ -18,7 +18,7 @@ tqdm.pandas()
 
 from warcio.capture_http import capture_http
 from warcio import WARCWriter
-from warc_test import get_text_selectolax,process_warc_from_archive
+# from warc_test import get_text_selectolax,process_warc_from_archive
 from urllib.parse import urlparse
 import requests
 
@@ -26,21 +26,18 @@ from warcio.capture_http import capture_http
 from warcio import WARCWriter
 import requests  
 
-with open('dataset_archive/www.fujita-hu.ac.jp.gz', 'wb') as fh:
-    warc_writer = WARCWriter(fh)
-    with capture_http(warc_writer):
-        requests.get('https://web.archive.org/web/20211010070014/https://fujita-hu.ac.jp/')
+# from pandarallel import pandarallel
+# pandarallel.initialize(progress_bar=True,nb_workers = 5)
+
 
 # all the websites
 df = pd.read_csv("resource/educational_websites_analyse/edu.csv")
 # df = df.head(100)
-# print(df['url'].head())
+print(df['url'].head())
 
 
 t = time.time()
-# url = "https://web.archive.org/web/20211010070014/https://fujita-hu.ac.jp/"
-# print('https://{}'.format(urlparse(url).path.split("//")[-1]))
-# exit()
+
 # find the url in specific time
 
 
@@ -86,17 +83,7 @@ df[['url','history_url']].to_csv("dataset_archive/edu_history_2021.csv",index = 
 print("time:",time.time() - t)
 # 收集数据
 
-def collect_dataset(row):
-    url = row['url']
-    history_url = row['history_url']
-    try:
 
-        with open('dataset_archive/{}.gz'.format(url), 'wb') as fh:
-            warc_writer = WARCWriter(fh)
-            with capture_http(warc_writer):
-                requests.get(history_url)
-    except Exception as e:
-        print(e)
     
 
 # df.apply(collect_dataset,axis = 1)

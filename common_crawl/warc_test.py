@@ -24,6 +24,7 @@ from botocore.client import Config
 import json
 from warcio.archiveiterator import ArchiveIterator
 import tldextract
+import validators
 # 获得trackers
 
 thirdparties = pd.read_csv("resource/labeled-thirdparties.csv",sep = '\t',names = ['domain','registration_org','registration_country','num_embeddings','num_embeddings_javascript','num_embeddings_iframe','num_embeddings_image','num_embeddings_link','category','company'])
@@ -45,42 +46,46 @@ def get_text_selectolax(html):
 
     
     if tree.body is None:
-        return None
+        return trackers
 
     for node in tree.tags('style'):
         node.decompose()
     
 #         找到a
-    for node in tree.css('a,link,script,iframe,img'):
-        text = node.text()
-        if ("google-analytics" in text):
-            trackers.append("google-analytics")
-        if 'href' in node.attributes:
-            url = node.attributes['href']
-            if url:
-                url = 'https://{}'.format(urlparse(url).path.split("//")[-1])
-                domain = tldextract.extract(str(urlparse(url).netloc)).domain
-                if domain in tracker_list:
-                    trackers.append(domain)
-        if 'src' in node.attributes:             
-            url = node.attributes['src']
-            if url:
-                url = 'https://{}'.format(urlparse(url).path.split("//")[-1])
-                domain = str(urlparse(url).netloc)
-                domain = tldextract.extract(str(urlparse(url).netloc)).domain
-                if domain in tracker_list:
-                    trackers.append(domain)
-                
-        if "type" in node.attributes and node.attributes['type'] == 'text/javascript':
+    try:
+        for node in tree.css('a,link,script,iframe,img'):
+            text = node.text()
+            if ("google-analytics" in text):
+                trackers.append("google-analytics")
+            if 'href' in node.attributes:
+                url = node.attributes['href']
 
-            result = re.findall(regex,text)
-
-            for url in result:
                 if url:
                     url = 'https://{}'.format(urlparse(url).path.split("//")[-1])
                     domain = tldextract.extract(str(urlparse(url).netloc)).domain
                     if domain in tracker_list:
                         trackers.append(domain)
+            if 'src' in node.attributes:             
+                url = node.attributes['src']
+                if url:
+                    url = 'https://{}'.format(urlparse(url).path.split("//")[-1])
+                    domain = str(urlparse(url).netloc)
+                    domain = tldextract.extract(str(urlparse(url).netloc)).domain
+                    if domain in tracker_list:
+                        trackers.append(domain)
+                    
+            if "type" in node.attributes and node.attributes['type'] == 'text/javascript':
+
+                result = re.findall(regex,text)
+
+                for url in result:
+                    if url:
+                        url = 'https://{}'.format(urlparse(url).path.split("//")[-1])
+                        domain = tldextract.extract(str(urlparse(url).netloc)).domain
+                        if domain in tracker_list:
+                            trackers.append(domain)
+    except Exception as e:
+        print(e)
     return trackers                  
             
     # except Exception as e:
@@ -129,9 +134,12 @@ def process_warc_from_archive(filename,offset = None,length = None, parser = Non
     with open(filename, 'rb') as stream:
         for record in ArchiveIterator(stream):
             url = record.rec_headers.get_header('WARC-Target-URI')
-            # print(url)
             text = record.content_stream().read()
-            trackers =  list(set(parser(text)))
+            trackers = parser(text)
+            # print(trackers)
+            trackers =  list(set(trackers))
+            if 'archive' in trackers:
+                trackers.remove('archive')
             # print(trackers)
             return (url, ','.join(trackers))
 
