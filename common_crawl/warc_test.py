@@ -1,13 +1,11 @@
 '''
 Author: Zhan
 Date: 2021-03-12 14:59:58
-LastEditTime: 2022-03-08 18:59:09
+LastEditTime: 2022-03-27 21:39:54
 LastEditors: Please set LastEditors
 Description: In User Settings Edit
 FilePath: /undefined/Users/zhansu/Documents/phd/privacy_lost/second_week/warc_test.py
 '''
-# import warc
-from bs4 import BeautifulSoup
 # coding: utf-8
 
 from time import time
@@ -66,7 +64,6 @@ def get_text_selectolax(html):
             url = node.attributes['src']
             if url:
                 url = 'https://{}'.format(urlparse(url).path.split("//")[-1])
-                domain = str(urlparse(url).netloc)
                 domain = tldextract.extract(str(urlparse(url).netloc)).domain
                 if domain in tracker_list:
                     trackers.append(domain)
@@ -104,25 +101,6 @@ def read_doc(record, parser=get_text_selectolax):
 
     return url, text
 
-
-def process_warc(file_name, parser, limit=10000):
-    warc_file = warc.open(file_name, 'rb')
-    t0 = time()
-    n_documents = 0
-    for i, record in enumerate(warc_file):
-        url, doc = read_doc(record, parser)
-        if not doc or not url:
-            continue
-
-        n_documents += 1
-
-        if i > limit:
-            break
-
-    warc_file.close()
-    print('Parser: %s' % parser.__name__)
-    print('Parsing took %s seconds and produced %s documents\n' % (time() - t0, n_documents))
-
 # 从s3中抽取网页trackers
 
 def process_warc_from_archive(filename,offset = None,length = None, parser = None):
@@ -141,7 +119,7 @@ def process_warc_froms3(file_name, offset = None, length = None, parser = None):
     # Count the range
     offset_end = offset + length - 1
     byte_range = 'bytes={offset}-{end}'.format(offset=offset, end=offset_end)
-    resp = s3.get_object(Bucket='commoncrawl', Key=filename,Range = byte_range)['Body']
+    resp = s3.get_object(Bucket='commoncrawl', Key=file_name,Range = byte_range)['Body']
 
     for record in ArchiveIterator(resp):
         url = record.rec_headers.get_header('WARC-Target-URI')
@@ -152,10 +130,10 @@ def process_warc_froms3(file_name, offset = None, length = None, parser = None):
 
 # process_warc("example_from_s3.warc",parser=get_text_selectolax)
 
-# filename = 'crawl-data/CC-MAIN-2021-43/segments/1634323585171.16/warc/CC-MAIN-20211017082600-20211017112600-00715.warc.gz'
-# offset = 1032823103
-# length = 15075
-# process_warc_froms3(filename,offset, length, parser=get_text_selectolax)
+filename = 'crawl-data/CC-MAIN-2021-43/segments/1634323585171.16/warc/CC-MAIN-20211017082600-20211017112600-00715.warc.gz'
+offset = 1032823103
+length = 15075
+result = process_warc_froms3(filename,offset, length, parser=get_text_selectolax)
 
 # import re 
 
@@ -170,27 +148,42 @@ def process_warc_froms3(file_name, offset = None, length = None, parser = None):
 
 # process_warc('CC-MAIN-20210513173321-20210513203321-00163.warc',get_text_selectolax,100000)
 
-# ##################### 把s3文件下载下来分析 ###############
-# filename = 'crawl-data/CC-MAIN-2021-25/segments/1623487611641.26/robotstxt/CC-MAIN-20210614074543-20210614104543-00180.warc.gz'
-# offset = 621557
-# length = 6481
+##################### 把s3文件下载下来分析 ###############
 
 
-# import boto3 
+# filename = 'crawl-data/CC-MAIN-2019-04/segments/1547583657907.79/warc/CC-MAIN-20190116215800-20190117001800-00071.warc.gz'
+# offset = 329439239
+# length = 24362
 
-# from botocore import UNSIGNED
-# from botocore.client import Config
-# import json
-# from warcio.archiveiterator import ArchiveIterator
-# import gzip
-# # Boto3 anonymour login to common crawl
-# s3 = boto3.client('s3',config = Config(signature_version = UNSIGNED))
-# # Count the range
-# offset_end = offset + length - 1
-# byte_range = 'bytes={offset}-{end}'.format(offset=offset, end=offset_end)
-# gzipped_text = s3.get_object(Bucket='commoncrawl', Key=filename, Range = byte_range)['Body']
+########### 把s3 文件下载下来放到本地
 
-# data = gzip.decompress(gzipped_text.read())
-# text = data.decode('utf-8')
-# with open("example_from_s3.warc","w") as fout:
-#     fout.write(text)
+'''
+import boto3 
+
+from botocore import UNSIGNED
+from botocore.client import Config
+import json
+from warcio.archiveiterator import ArchiveIterator
+import gzip
+
+def collect_from_s3(url,filename,offset,length):
+    # Boto3 anonymour login to common crawl
+    s3 = boto3.client('s3',config = Config(signature_version = UNSIGNED))
+    # Count the range
+    offset_end = offset + length - 1
+    byte_range = 'bytes={offset}-{end}'.format(offset=offset, end=offset_end)
+    gzipped_text = s3.get_object(Bucket='commoncrawl', Key=filename, Range = byte_range)['Body']
+
+    data = gzip.decompress(gzipped_text.read())
+    text = data.decode('utf-8')
+    with open("unit_test/{}.warc".format(tldextract.extract(url).domain),"w") as fout:
+        fout.write(text)
+
+import json
+with open("cc_url.json") as f:
+    for line in f:
+        data = json.loads(line.strip())
+        print(data['filename'],data['offset'],data['length'])
+        collect_from_s3(data['url'],data['filename'],int(data['offset']),int(data['length']))
+'''
+#######
