@@ -1,0 +1,109 @@
+"""
+Author: your name
+Date: 2022-03-08 11:27:28
+LastEditTime: 2022-03-15 23:07:32
+LastEditors: Please set LastEditors
+Description: collect dataset from Archive
+FilePath: /common_crawl/wtf.py
+"""
+from warcio import WARCWriter
+from warcio.statusandheaders import StatusAndHeaders
+import requests
+import pandas as pd
+from tqdm import tqdm
+
+
+tqdm.pandas()
+
+# from pandarallel import pandarallel
+# pandarallel.initialize(progress_bar=True)
+
+
+def get_historical_url(type, url, year):
+    """get historical url for specific url in specific year
+
+    Args:
+        type (_type_): domain type (edu or non-edu)
+        url (_type_):  (url)
+        year (_type_): which year we want to obtain
+    """
+
+    filename = f"resource/edu_repair/{type}_domain_historical_year_{year}_repair.csv"
+    df = pd.read_csv(filename)
+
+    if type == "edu":
+        edu_url_dict = dict(
+            zip(df["edu_domain"].to_list(), df["history_url"].to_list())
+        )
+        historical_url = edu_url_dict[url]
+    elif type == "sample":
+        control_url_dict = dict(
+            zip(df["sample_domain"].to_list(), df["history_url"].to_list())
+        )
+        historical_url = control_url_dict[url]
+    return historical_url
+
+
+def collect_dataset(row, year):
+    """
+    This is collecting process over the year
+
+    Args:
+        row (df row): df row used by df.apply()
+        year (str): specific year we need to collect dataset.
+    """
+    url = row["sample_domain"]
+    history_url = row["history_url"]
+    try:
+        with open(
+            "dataset_archive/edu_archive_repair/{}/{}.gz".format(year, url),
+            "wb",
+        ) as output:
+            writer = WARCWriter(output, gzip=True)
+
+            resp = requests.get(
+                history_url, headers={"Accept-Encoding": "identity"}, stream=True
+            )
+
+            # get raw headers from urllib3
+            headers_list = resp.raw.headers.items()
+
+            http_headers = StatusAndHeaders("200 OK", headers_list, protocol="HTTP/1.0")
+
+            record = writer.create_warc_record(
+                history_url, "response", payload=resp.raw, http_headers=http_headers
+            )
+
+            writer.write_record(record)
+    except Exception as e:
+        print(e)
+
+
+def collect_dataset_from_url(url : str, path : str):
+    """collect individual url and store it in a path
+
+    Args:
+        url (str): url
+        path (str): path
+    """
+    history_url = url
+    try:
+        with open(path, "wb") as output:
+            writer = WARCWriter(output, gzip=True)
+
+            resp = requests.get(
+                history_url, headers={"Accept-Encoding": "identity"}, stream=True
+            )
+
+            # get raw headers from urllib3
+            headers_list = resp.raw.headers.items()
+
+            http_headers = StatusAndHeaders("200 OK", headers_list, protocol="HTTP/1.0")
+
+            record = writer.create_warc_record(
+                history_url, "response", payload=resp.raw, http_headers=http_headers
+            )
+
+            writer.write_record(record)
+    except Exception as e:
+        print(e)
