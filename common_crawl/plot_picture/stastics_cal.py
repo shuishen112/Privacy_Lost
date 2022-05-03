@@ -1,23 +1,26 @@
 import pandas as pd
-import plotly.graph_objects as go
+import tldextract
+from tqdm import tqdm
 
-frame_base = pd.read_csv("dataset/frame_base.csv")
-frame_edu = pd.read_csv("dataset/frame_edu.csv")
-# frame_base = frame_base.sample(n = 500)
-# frame_edu = frame_edu.sample(n = 500)
+frame_base = pd.read_csv("dataset_archive/frame_control.csv", sep="\t")
+frame_edu = pd.read_csv("dataset_archive/frame_edu.csv", sep="\t")
+
+
+# frame_base = frame_base.sample(n=500)
+# frame_edu = frame_edu.sample(n=500)
 
 # rename the columns of dataframe
 x_base = [
-    "2013_01",
-    "2014_01",
-    "2015_01",
-    "2016_01",
-    "2017_01",
-    "2018_01",
-    "2019_01",
-    "2020_01",
-    "2021_01",
-    "2022_01",
+    "2012",
+    "2013",
+    "2014",
+    "2015",
+    "2016",
+    "2017",
+    "2018",
+    "2019",
+    "2020",
+    "2021",
 ]
 
 
@@ -31,29 +34,8 @@ def get_frame_list(frame_edu):
         _type_: a list of frame
     """
     frame_edu.columns = ["url"] + x_base
-    frame_201301_edu = frame_edu[["url", "2013_01"]]
-    frame_201401_edu = frame_edu[["url", "2014_01"]]
-    frame_201501_edu = frame_edu[["url", "2015_01"]]
-    frame_201601_edu = frame_edu[["url", "2016_01"]]
-    frame_201701_edu = frame_edu[["url", "2017_01"]]
-    frame_201801_edu = frame_edu[["url", "2018_01"]]
-    frame_201901_edu = frame_edu[["url", "2019_01"]]
-    frame_202001_edu = frame_edu[["url", "2020_01"]]
-    frame_202101_edu = frame_edu[["url", "2021_01"]]
-    frame_202201_edu = frame_edu[["url", "2022_01"]]
+    frame_list_edu = [frame_edu[["url", year]] for year in x_base]
 
-    frame_list_edu = [
-        frame_201301_edu,
-        frame_201401_edu,
-        frame_201501_edu,
-        frame_201601_edu,
-        frame_201701_edu,
-        frame_201801_edu,
-        frame_201901_edu,
-        frame_202001_edu,
-        frame_202101_edu,
-        frame_202201_edu,
-    ]
     for item in frame_list_edu:
         item.columns = ["url", "trackers"]
     return frame_list_edu
@@ -69,34 +51,15 @@ def get_trackers_count_average(frame_edu):
         _type_: a list of average number
     """
     frame_edu.columns = ["url"] + x_base
-    frame_201301_edu = frame_edu[["url", "2013_01"]]
-    frame_201401_edu = frame_edu[["url", "2014_01"]]
-    frame_201501_edu = frame_edu[["url", "2015_01"]]
-    frame_201601_edu = frame_edu[["url", "2016_01"]]
-    frame_201701_edu = frame_edu[["url", "2017_01"]]
-    frame_201801_edu = frame_edu[["url", "2018_01"]]
-    frame_201901_edu = frame_edu[["url", "2019_01"]]
-    frame_202001_edu = frame_edu[["url", "2020_01"]]
-    frame_202101_edu = frame_edu[["url", "2021_01"]]
-    frame_202201_edu = frame_edu[["url", "2022_01"]]
-
-    frame_list_edu = [
-        frame_201301_edu,
-        frame_201401_edu,
-        frame_201501_edu,
-        frame_201601_edu,
-        frame_201701_edu,
-        frame_201801_edu,
-        frame_201901_edu,
-        frame_202001_edu,
-        frame_202101_edu,
-        frame_202201_edu,
-    ]
+    frame_list_edu = [frame_edu[["url", year]] for year in x_base]
 
     for item in frame_list_edu:
         item.columns = ["url", "trackers"]
 
     def count_trackers(row):
+        # if row is nan, return 0
+        if row != row:
+            return 0
         return len(row.split(","))
 
     trackers_count_edu = [
@@ -139,12 +102,16 @@ df_domain_third_party = pd.read_csv(
 # df_domain = pd.read_csv("trackers_domain.csv")
 df_domain = df_domain_third_party
 
+
 # df_domain = df_domain.merge(df_domain_third_party,how = "left",on = "domain")[['domain',"registration_country","category"]]
 print(df_domain.head())
 
 from collections import Counter
 
-trackers = df_domain["domain"].to_list()
+trackers_list = df_domain["domain"].to_list()
+trackers_list = set(
+    list(map(lambda x: tldextract.extract(x).domain, df_domain["domain"].to_list()))
+)
 
 
 def trackers_count(trackers, web_list):
@@ -160,7 +127,9 @@ def trackers_count(trackers, web_list):
     trackers_count_dict = Counter()
     try:
         for t in trackers:
-            for e, l in enumerate(web_list):
+            for l in web_list:
+                if l != l:
+                    continue
                 if t in l:
                     if t in trackers_count_dict:
                         trackers_count_dict[t] += 1
@@ -168,6 +137,7 @@ def trackers_count(trackers, web_list):
                         trackers_count_dict[t] = 1
     except Exception as e:
         print(e)
+
     return trackers_count_dict
 
 
@@ -177,8 +147,7 @@ def get_trackers_count(frame):
         :param frame:
     """
     frame["trackers_list"] = frame["trackers"].str.split(",")
-
-    trackers_count_frame = trackers_count(trackers, frame["trackers_list"])
+    trackers_count_frame = trackers_count(trackers_list, frame["trackers_list"])
 
     return trackers_count_frame
 
@@ -227,10 +196,10 @@ for e, df in enumerate(df_trackers_frame_list_base[1:]):
 
 
 df_rate_merge_edu.columns = ["trackers"] + x_base
-df_rate_merge_edu.to_csv("dataset/df_rate_merge_edu.csv", index=None)
+df_rate_merge_edu.to_csv("dataset_archive/df_rate_merge_edu.csv", index=None)
 # print(df_rate_merge_edu.head())
 
 
 df_rate_merge_base.columns = ["trackers"] + x_base
-df_rate_merge_base.to_csv("dataset/df_rate_merge_base.csv", index=None)
+df_rate_merge_base.to_csv("dataset_archive/df_rate_merge_base.csv", index=None)
 # print(df_rate_merge_base.head())

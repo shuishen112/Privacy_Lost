@@ -11,16 +11,16 @@ import plotly.graph_objects as go
 import pandas as pd
 
 x_base = [
-    "2013_01",
-    "2014_01",
-    "2015_01",
-    "2016_01",
-    "2017_01",
-    "2018_01",
-    "2019_01",
-    "2020_01",
-    "2021_01",
-    "2022_01",
+    "2012",
+    "2013",
+    "2014",
+    "2015",
+    "2016",
+    "2017",
+    "2018",
+    "2019",
+    "2020",
+    "2021",
 ]
 
 
@@ -86,15 +86,16 @@ def plot_average_change_rate():
 def plot_rate_change_of_edu_non_edu():
     """rate change of RQ2, Figure 4"""
     fig = go.Figure()
-    df_rate_merge_edu = pd.read_csv("dataset/df_rate_merge_edu.csv")
-    df_rate_merge_base = pd.read_csv("dataset/df_rate_merge_base.csv")
-    df_rate_merge_edu = df_rate_merge_edu.drop([4])
-    df_rate_merge_base = df_rate_merge_base.drop([4, 5, 6, 7])
+    df_rate_merge_edu = pd.read_csv("dataset_archive/df_rate_merge_edu.csv")
+    df_rate_merge_base = pd.read_csv("dataset_archive/df_rate_merge_base.csv")
+    # df_rate_merge_edu = df_rate_merge_edu.drop([4])
+    # df_rate_merge_base = df_rate_merge_base.drop([4, 5, 6, 7])
 
     print(df_rate_merge_edu)
     for _, row in df_rate_merge_edu[:5].iterrows():
         y_list = [row[i] for i in x_base]
         x_draw = [
+            "2012",
             "2013",
             "2014",
             "2015",
@@ -104,7 +105,6 @@ def plot_rate_change_of_edu_non_edu():
             "2019",
             "2020",
             "2021",
-            "2022",
         ]
 
         fig.add_trace(
@@ -114,6 +114,7 @@ def plot_rate_change_of_edu_non_edu():
     for _, row in df_rate_merge_base[:5].iterrows():
         y_list = [row[i] for i in x_base]
         x_draw = [
+            "2012",
             "2013",
             "2014",
             "2015",
@@ -123,7 +124,6 @@ def plot_rate_change_of_edu_non_edu():
             "2019",
             "2020",
             "2021",
-            "2022",
         ]
 
         fig.add_trace(
@@ -156,4 +156,5 @@ def plot_rate_change_of_edu_non_edu():
     fig.write_image("images/third_party_rate_change_comparision.pdf")
 
 
+# plot_average_change_rate()
 plot_rate_change_of_edu_non_edu()

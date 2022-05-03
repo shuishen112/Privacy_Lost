@@ -75,6 +75,7 @@ def get_text_selectolax(html):
 
                 if url:
                     url = "https://{}".format(urlparse(url).path.split("//")[-1])
+                    domain = str(urlparse(url).netloc)
                     domain = tldextract.extract(str(urlparse(url).netloc)).domain
                     if domain in tracker_list:
                         trackers.append(domain)
@@ -97,6 +98,7 @@ def get_text_selectolax(html):
                 for url in result:
                     if url:
                         url = "https://{}".format(urlparse(url).path.split("//")[-1])
+                        domain = str(urlparse(url).netloc)
                         domain = tldextract.extract(str(urlparse(url).netloc)).domain
                         if domain in tracker_list:
                             trackers.append(domain)
@@ -158,13 +160,12 @@ def process_warc_froms3(file_name, offset=None, length=None, parser=None):
         print(url, set(trackers))
 
 
-# process_warc("example_from_s3.warc",parser=get_text_selectolax)
-
-# filename = 'crawl-data/CC-MAIN-2021-43/segments/1634323585171.16/warc/CC-MAIN-20211017082600-20211017112600-00715.warc.gz'
+# process_warc_from_archive("example_from_s3.warc", parser=get_text_selectolax)
+# filename = "crawl-data/CC-MAIN-2021-43/segments/1634323585171.16/warc/CC-MAIN-20211017082600-20211017112600-00715.warc.gz"
 # offset = 1032823103
 # length = 15075
-# result = process_warc_froms3(filename,offset, length, parser=get_text_selectolax)
-
+# result = process_warc_froms3(filename, offset, length, parser=get_text_selectolax)
+# print(result)
 # import re
 
 # with open('CC-MAIN-20210513173321-20210513203321-00163.warc',encoding='utf-8',errors='ignore') as fin:

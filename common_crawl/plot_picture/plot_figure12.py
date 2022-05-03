@@ -15,11 +15,12 @@ from plotly.subplots import make_subplots
 
 draw_type = "company"
 
-name_dict = {"company": "df_company_rate.csv", "tracker": "edu_trackers_rate.csv"}
+name_dict = {
+    "company": "df_company_rate_compare.csv",
+    "tracker": "tracker_edu_non_edu_compare.csv",
+}
 
-df_rate = pd.read_csv(
-    "resource/educational_websites_analyse/{}".format(name_dict[draw_type])
-)[:10]
+df_rate = pd.read_csv("dataset_archive/{}".format(name_dict[draw_type]))[:10]
 # print(df_rate)
 
 # fig = make_subplots(rows=1, cols=2,subplot_titles=("The distribution of 3d-party's owner company ","The distribution of 3d-party"))

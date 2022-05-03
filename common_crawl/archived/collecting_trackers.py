@@ -19,7 +19,7 @@ def collect_trackers(type, year):
         year (_type_): specific year
     """
 
-    files = glob.glob(f"dataset_archive/{type}/{year}/*.gz")
+    files = sorted(glob.glob(f"dataset_archive/{type}/{year}/*.gz"))
 
     urls = []
     trackesr = []
@@ -44,4 +44,4 @@ def collect_trackers(type, year):
 
 years = list(range(2012, 2022))
 for year in years:
-    collect_trackers("control_archive", year)
+    collect_trackers("edu_archive", year)
