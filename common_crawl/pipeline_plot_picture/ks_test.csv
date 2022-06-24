@@ -1,0 +1,11 @@
+year,statistic,pvalue
+tracker_2012,0.046,2.4e-10
+tracker_2013,0.046,1.4e-10
+tracker_2014,0.039,9.5e-08
+tracker_2015,0.051,1.7e-12
+tracker_2016,0.079,1e-29
+tracker_2017,0.085,1.4e-34
+tracker_2018,0.11,8.2e-55
+tracker_2019,0.12,1.8e-72
+tracker_2020,0.14,2.8e-88
+tracker_2021,0.14,5.6e-99

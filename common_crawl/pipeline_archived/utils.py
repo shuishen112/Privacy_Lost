@@ -11,7 +11,7 @@ from warcio.statusandheaders import StatusAndHeaders
 import requests
 import pandas as pd
 from tqdm import tqdm
-
+import os
 
 tqdm.pandas()
 
@@ -79,7 +79,7 @@ def collect_dataset(row, year):
         print(e)
 
 
-def collect_dataset_from_url(url : str, path : str):
+def collect_dataset_from_url(url: str, path: str):
     """collect individual url and store it in a path
 
     Args:
@@ -107,3 +107,16 @@ def collect_dataset_from_url(url : str, path : str):
             writer.write_record(record)
     except Exception as e:
         print(e)
+
+
+def collect_dataset_from_ali(row, data_path, task_type=""):
+    url = row["url"]
+    years = list(range(2012, 2022))
+    for year in years:
+        historical_url = row[year]
+        path = os.path.join(data_path, f"{task_type}_archive_ali/{year}")
+        if not os.path.exists(path):
+            os.makedirs(path)
+
+        url_path = path + f"/{url}.gz"
+        collect_dataset_from_url(historical_url, url_path)

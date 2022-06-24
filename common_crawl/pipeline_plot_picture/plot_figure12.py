@@ -16,8 +16,8 @@ from plotly.subplots import make_subplots
 draw_type = "company"
 
 name_dict = {
-    "company": "df_company_rate_compare.csv",
-    "tracker": "tracker_edu_non_edu_compare.csv",
+    "company": "df_company_rate_compare_all.csv",
+    "tracker": "tracker_edu_non_edu_compare_all.csv",
 }
 
 df_rate = pd.read_csv("dataset_archive/{}".format(name_dict[draw_type]))[:10]

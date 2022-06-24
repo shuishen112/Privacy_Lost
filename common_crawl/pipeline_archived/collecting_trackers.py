@@ -5,10 +5,41 @@ from tqdm import tqdm
 import pandas as pd
 import sys
 from os import path
+import logging
+
+
+logging.basicConfig(
+    filename="logs/all_tracker.log",
+    level=logging.WARNING,
+    format="%(asctime)s:%(levelname)s:%(name)s:%(message)s",
+)
+logger = logging.getLogger("webtracking")
+handler = logging.StreamHandler()
+handler.setFormatter(
+    logging.Formatter("%(asctime)s|%(levelname)s|%(name)s|%(message)s")
+)
+logger.addHandler(handler)
+logger.setLevel(logging.INFO)
 
 t = time.time()
 sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
+from config import args
+
 from warc_module.warc_utils import get_text_selectolax, process_warc_from_archive
+
+
+df = pd.read_csv(
+    f"resource/available-control-urls.txt",
+    names=["edu_url", "url", "historical_url"],
+    sep="\t",
+).dropna()
+
+logger.info(f"task_type:{args['task_type']}")
+
+if args["task_type"] == "edu":
+    filter_set = set(df["edu_url"].unique())
+else:
+    filter_set = set(df["url"].unique())
 
 
 def collect_trackers(type, year):
@@ -24,6 +55,9 @@ def collect_trackers(type, year):
     urls = []
     trackesr = []
     for file in tqdm(files):
+        file_name = file.split("/")[-1].replace(".gz", "")
+        if file_name not in filter_set:
+            continue
         result = process_warc_from_archive(file, parser=get_text_selectolax)
         if result:
             url, tracker_list = result
@@ -38,10 +72,12 @@ def collect_trackers(type, year):
             print("empty file", file)
 
     df_edu_history = pd.DataFrame({"url": urls, "3p-domain": trackesr})
-    df_edu_history.to_csv(f"dataset_archive/{type}_{year}.csv", index=None)
-    print(time.time() - t)
+    df_edu_history.to_csv(
+        f"dataset_archive/{type}_exclude_{args['tracker_type']}_{year}.csv", index=None
+    )
 
 
 years = list(range(2012, 2022))
 for year in years:
-    collect_trackers("edu_archive", year)
+    collect_trackers(f"{args['task_type']}_archive_ali", year)
+logger.info(time.time() - t)

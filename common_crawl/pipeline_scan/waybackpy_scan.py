@@ -7,7 +7,6 @@ Description: 打开koroFileHeader查看配置 进行设置: https://github.com/O
 FilePath: /common_crawl/waybackpy.py
 """
 from email import header
-from warnings import catch_warnings
 import waybackpy
 from waybackpy import WaybackMachineCDXServerAPI
 from waybackpy import WaybackMachineAvailabilityAPI
@@ -23,6 +22,7 @@ from warcio import WARCWriter
 # from warc_test import get_text_selectolax,process_warc_from_archive
 from urllib.parse import urlparse
 import requests
+
 # from pandarallel import pandarallel
 # pandarallel.initialize(progress_bar=True,nb_workers = 5)
 
@@ -32,6 +32,8 @@ df = pd.read_csv("resource/edu_repair/sample_all_domain_dmoz.csv")
 
 df = df.sort_values(by="rank")
 df = df.head(20000)
+
+df.to_csv("resource/edu_repair/have_scaned_websites.csv", index=None)
 
 # print(df['edu_domain'].head())
 
@@ -111,7 +113,25 @@ def get_specific_time_url(url, year):
     return archive_url
 
 
-# df[['old_edu','new_edu']] = df.progress_apply(get_old_new_time,axis = 1,result_type='expand')
+def judge_whether_it_can_occur_in_each_year(url, begin_year, end_year):
+
+    user_agent = "Mozilla/5.0 (Windows NT 5.1; rv:40.0) Gecko/20100101 Firefox/40.0"
+
+    for year in range(begin_year, end_year):
+        print(year)
+        cdx_api = WaybackMachineCDXServerAPI(
+            url, user_agent, start_timestamp=year, end_timestamp=year
+        )
+        near = cdx_api.near(year=year)
+        archive_url = near.archive_url
+        print(archive_url)
+
+
+start = time.time()
+judge_whether_it_can_occur_in_each_year("baidu.com", 2012, 2022)
+print(time.time() - start)
+
+# df[['old_edu','new_edu']] = df.iprogress_apply(get_old_new_time,axis = 1,result_type='expand')
 
 # df.to_csv("resource/edu_repair/edu_time_series_3000_later.csv",index = None)
 
@@ -123,4 +143,4 @@ def get_specific_time_url(url, year):
 #         "resource/edu_repair/{}_historical_year_{}.csv".format(collect_key, str(year)),
 #         index=None,
 #     )
-print(get_specific_time_url("google.com", 2012))
+# print(get_specific_time_url("google.com", 2012))

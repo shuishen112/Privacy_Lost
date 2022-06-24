@@ -22,9 +22,15 @@ from botocore.client import Config
 import json
 from warcio.archiveiterator import ArchiveIterator
 import tldextract
+import logging
 import validators
+from validators import ValidationFailure
+from config import args
+
+logger = logging.getLogger("webtracking.warc_tracking")
 
 # 获得trackers
+tracker_type = args["tracker_type"]
 
 thirdparties = pd.read_csv(
     "resource/labeled-thirdparties.csv",
@@ -43,6 +49,11 @@ thirdparties = pd.read_csv(
     ],
 )
 
+whotracksme = pd.read_csv("resource/whotracksme_trackers.txt", names=["domain"])
+
+
+if tracker_type == "who":
+    thirdparties = whotracksme
 regex = "((?<=[^a-zA-Z0-9])(?:https?\:\/\/|[a-zA-Z0-9]{1,}\.{1}|\b)(?:\w{1,}\.{1}){1,5}(?:com|org|edu|gov|uk|net|ca|de|jp|fr|au|us|ru|ch|it|nl|se|no|es|mil|iq|io|ac|ly|sm){1}(?:\/[a-zA-Z0-9]{1,})*)"
 
 tracker_list = thirdparties["domain"].to_list()
@@ -50,42 +61,65 @@ tracker_list = list(map(lambda x: tldextract.extract(x).domain, tracker_list))
 
 # print(trackers)
 
+domain_url = {}
+# fout = open("tracker_url_edu.txt", "w")
+
+
+def get_domain(url):
+    if not url:
+        return None
+    url = "https://{}".format(urlparse(url).path.split("//")[-1])
+    if is_string_an_url(url):
+        domain = str(urlparse(url).netloc)
+        domain = tldextract.extract(str(urlparse(url).netloc)).domain
+        # logger.info("url:{}-----domain:{}".format(url, domain))
+        if domain not in domain_url:
+            domain_url[domain] = url
+            # fout.write(domain + "\t" + url + "\n")
+    else:
+        domain = None
+    return domain
+
+
+def is_string_an_url(url_string: str) -> bool:
+    result = validators.url(url_string)
+
+    if isinstance(result, ValidationFailure):
+        return False
+
+    return result
+
 
 def get_text_selectolax(html):
-
     trackers = []
-
     # try:
     tree = HTMLParser(html)
-
     if tree.body is None:
         return trackers
-
     for node in tree.tags("style"):
         node.decompose()
 
     #         找到a
     try:
-        for node in tree.css("a,link,script,iframe,img"):
+        for node in tree.css("script,iframe,img"):
             text = node.text()
             if "google-analytics" in text:
                 trackers.append("google-analytics")
             if "href" in node.attributes:
                 url = node.attributes["href"]
-
-                if url:
-                    url = "https://{}".format(urlparse(url).path.split("//")[-1])
-                    domain = str(urlparse(url).netloc)
-                    domain = tldextract.extract(str(urlparse(url).netloc)).domain
-                    if domain in tracker_list:
+                domain = get_domain(url)
+                if domain:
+                    if tracker_type == "all_tracker":
+                        trackers.append(domain)
+                    elif domain in tracker_list:
                         trackers.append(domain)
             if "src" in node.attributes:
                 url = node.attributes["src"]
-                if url:
-                    url = "https://{}".format(urlparse(url).path.split("//")[-1])
-                    domain = str(urlparse(url).netloc)
-                    domain = tldextract.extract(str(urlparse(url).netloc)).domain
-                    if domain in tracker_list:
+                domain = get_domain(url)
+                if domain:
+                    if tracker_type == "all_tracker":
+                        trackers.append(domain)
+                    elif domain in tracker_list:
                         trackers.append(domain)
 
             if (
@@ -94,13 +128,12 @@ def get_text_selectolax(html):
             ):
 
                 result = re.findall(regex, text)
-
                 for url in result:
-                    if url:
-                        url = "https://{}".format(urlparse(url).path.split("//")[-1])
-                        domain = str(urlparse(url).netloc)
-                        domain = tldextract.extract(str(urlparse(url).netloc)).domain
-                        if domain in tracker_list:
+                    domain = get_domain(url)
+                    if domain:
+                        if tracker_type == "all_tracker":
+                            trackers.append(domain)
+                        elif domain in tracker_list:
                             trackers.append(domain)
     except Exception as e:
         print(e)

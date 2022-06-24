@@ -24,6 +24,29 @@ x_base = [
 ]
 
 
+def get_trackers_distribution(frame_edu):
+    frame_edu.columns = ["url"] + x_base
+    frame_list_edu = [frame_edu[["url", year]] for year in x_base]
+
+    for item in frame_list_edu:
+        item.columns = ["url", "trackers"]
+
+    def count_trackers(row):
+        # if row is nan, return 0
+        if row != row:
+            return 0
+        return len(row.split(","))
+
+    trackers_count_list = []
+
+    for frame, year in zip(frame_list_edu, x_base):
+        df_year = pd.DataFrame({"year": [year] * len(frame_edu)})
+        df_temp = pd.concat([frame["trackers"].apply(count_trackers), df_year], axis=1)
+        trackers_count_list.append(df_temp)
+    df_count_all_year = pd.concat(trackers_count_list)
+    return df_count_all_year
+
+
 def get_frame_list(frame_edu):
     """split the edu_frame to several years
 
@@ -39,6 +62,12 @@ def get_frame_list(frame_edu):
     for item in frame_list_edu:
         item.columns = ["url", "trackers"]
     return frame_list_edu
+
+
+def plot_get_df_count_all_year():
+    df_count_all_year_edu = get_trackers_distribution(frame_edu)
+    df_count_all_year_base = get_trackers_distribution(frame_base)
+    return df_count_all_year_edu, df_count_all_year_base
 
 
 def get_trackers_count_average(frame_edu):
@@ -62,23 +91,21 @@ def get_trackers_count_average(frame_edu):
             return 0
         return len(row.split(","))
 
-    trackers_count_edu = [
-        frame["trackers"].apply(count_trackers).sum() for frame in frame_list_edu
+    trackers_std_edu = [
+        frame["trackers"].apply(count_trackers).std() for frame in frame_list_edu
     ]
     trackers_average_edu = [
         frame["trackers"].apply(count_trackers).mean() for frame in frame_list_edu
     ]
 
-    return trackers_average_edu
+    return trackers_std_edu, trackers_average_edu
 
 
-trackers_average_edu = get_trackers_count_average(frame_edu)
-trackers_average_base = get_trackers_count_average(frame_base)
+def plot_get_trackers_average():
+    trackers_average_edu = get_trackers_count_average(frame_edu)
+    trackers_average_base = get_trackers_count_average(frame_base)
 
-# KS-test
-from scipy import stats
-
-print(stats.ks_2samp(trackers_average_base, trackers_average_edu))
+    return trackers_average_edu, trackers_average_base
 
 
 ########################
@@ -167,39 +194,62 @@ def trackers_rate_dict(trackers, list_len):
     return d
 
 
-frame_list_edu = get_frame_list(frame_edu)
-df_trackers_frame_list_edu = []
-for frame in frame_list_edu:
-    df_trackers_count = get_trackers_count(frame)
-    df_trackers_frame = trackers_crawl_rate(
-        df_trackers_count.most_common(1000), len(frame)
+def plot_get_rate_over_year():
+
+    frame_list_edu = get_frame_list(frame_edu)
+    df_trackers_frame_list_edu = []
+    for frame in frame_list_edu:
+        df_trackers_count = get_trackers_count(frame)
+        df_trackers_frame = trackers_crawl_rate(
+            df_trackers_count.most_common(1000), len(frame)
+        )
+        df_trackers_frame_list_edu.append(df_trackers_frame)
+
+    frame_list_base = get_frame_list(frame_base)
+    df_trackers_frame_list_base = []
+    for frame in frame_list_base:
+        df_trackers_count = get_trackers_count(frame)
+        df_trackers_frame = trackers_crawl_rate(
+            df_trackers_count.most_common(1000), len(frame)
+        )
+        df_trackers_frame_list_base.append(df_trackers_frame)
+
+    df_rate_merge_edu = df_trackers_frame_list_edu[0]
+    for e, df in enumerate(df_trackers_frame_list_edu[1:]):
+        df_rate_merge_edu = df_rate_merge_edu.merge(df, how="outer", on="tracker")
+
+    df_rate_merge_base = df_trackers_frame_list_base[0]
+    for e, df in enumerate(df_trackers_frame_list_base[1:]):
+        df_rate_merge_base = df_rate_merge_base.merge(df, how="outer", on="tracker")
+
+    df_rate_merge_edu.columns = ["trackers"] + x_base
+    df_rate_merge_edu.to_csv("dataset_archive/df_rate_merge_edu.csv", index=None)
+    # print(df_rate_merge_edu.head())
+
+    df_rate_merge_base.columns = ["trackers"] + x_base
+    df_rate_merge_base.to_csv("dataset_archive/df_rate_merge_base.csv", index=None)
+    # print(df_rate_merge_base.head())
+
+
+def KS_test_over_the_year():
+    # KS-test
+    from scipy import stats
+
+    stat = []
+    p_value = []
+
+    trackers_average_base = pd.read_csv(
+        "dataset_archive/frame_control_count.csv", sep="\t"
     )
-    df_trackers_frame_list_edu.append(df_trackers_frame)
+    trackers_average_edu = pd.read_csv("dataset_archive/frame_edu_count.csv", sep="\t")
 
-frame_list_base = get_frame_list(frame_base)
-df_trackers_frame_list_base = []
-for frame in frame_list_base:
-    df_trackers_count = get_trackers_count(frame)
-    df_trackers_frame = trackers_crawl_rate(
-        df_trackers_count.most_common(1000), len(frame)
-    )
-    df_trackers_frame_list_base.append(df_trackers_frame)
+    names = trackers_average_base.columns
+    for n in names[1:]:
+        result = stats.ks_2samp(trackers_average_base[n], trackers_average_edu[n])
+        stat.append(float("%.2g" % result.statistic))
+        p_value.append(float("%.2g" % result.pvalue))
 
+    df_result = pd.DataFrame({"year": names[1:], "statistic": stat, "pvalue": p_value})
+    df_result.to_csv("pipeline_plot_picture/ks_test.csv", index=None, sep=",")
 
-df_rate_merge_edu = df_trackers_frame_list_edu[0]
-for e, df in enumerate(df_trackers_frame_list_edu[1:]):
-    df_rate_merge_edu = df_rate_merge_edu.merge(df, how="outer", on="tracker")
-
-df_rate_merge_base = df_trackers_frame_list_base[0]
-for e, df in enumerate(df_trackers_frame_list_base[1:]):
-    df_rate_merge_base = df_rate_merge_base.merge(df, how="outer", on="tracker")
-
-
-df_rate_merge_edu.columns = ["trackers"] + x_base
-df_rate_merge_edu.to_csv("dataset_archive/df_rate_merge_edu.csv", index=None)
-# print(df_rate_merge_edu.head())
-
-
-df_rate_merge_base.columns = ["trackers"] + x_base
-df_rate_merge_base.to_csv("dataset_archive/df_rate_merge_base.csv", index=None)
-# print(df_rate_merge_base.head())
+plot_get_rate_over_year()

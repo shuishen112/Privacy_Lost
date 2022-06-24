@@ -4,8 +4,8 @@ import pandas as pd
 import tldextract
 from collections import Counter
 
-control_df = pd.read_csv("dataset_archive/control_archive_2021.csv")
-edu_df = pd.read_csv("dataset_archive/edu_archive_2021.csv")
+control_df = pd.read_csv("dataset_archive/control_archive_ali_all_2021.csv")
+edu_df = pd.read_csv("dataset_archive/edu_archive_ali_all_2021.csv")
 
 # 获得所有的trackers
 df_domain = pd.read_csv(
@@ -15,9 +15,31 @@ df_domain = pd.read_csv(
         ","
     ),
 )
-# trackers category 类别
-trackers = df_domain["Domain"].to_list()
-trackers = set(list(map(lambda x: tldextract.extract(x).domain, trackers)))
+
+
+def get_all_tracker():
+    df_all_trackers_edu = pd.read_csv("resource/all_trackersedu.csv")
+    df_all_trackers_control = pd.read_csv("resource/all_trackerscontrol.csv")
+    trackers = set(
+        df_all_trackers_edu["trackers"].to_list()
+        + df_all_trackers_control["trackers"].to_list()
+    )
+    print(f"there are {len(trackers)} trackers in the dataset")
+    return trackers
+
+
+def get_tracker(df):
+
+    # trackers category 类别
+    trackers = df["Domain"].to_list()
+    trackers = set(list(map(lambda x: tldextract.extract(x).domain, trackers)))
+
+    return trackers
+
+
+# trackers = get_tracker(df_domain)
+trackers = get_all_tracker()
+
 
 service_type = set(df_domain["Category"].to_list())
 company = set(df_domain["Company"].to_list())
@@ -28,7 +50,6 @@ print("len service_type", len(service_type))
 
 df_domain["tld"] = df_domain["Domain"].apply(lambda x: tldextract.extract(x).domain)
 
-print(df_domain["tld"])
 tld_category = dict(zip(df_domain["tld"].to_list(), df_domain["Category"].to_list()))
 tld_company = dict(zip(df_domain["tld"].to_list(), df_domain["Company"].to_list()))
 
@@ -67,7 +88,12 @@ def company_count(company, web_list):
             for e, l in enumerate(web_list):
                 if l != l:
                     continue
-                company_list = list(map(lambda x: tld_company[x], l))
+                company_list = []
+                for ll in l:
+                    if ll in tld_company:
+                        company_list.append(tld_company[ll])
+                # company_list = list(map(lambda x: tld_company[x], l))
+                # print(company_list)
                 if s in company_list:
                     if s in company_dict:
                         company_dict[s] += 1
@@ -93,7 +119,6 @@ def get_trackers_count(frame):
 
 trackers_count_edu, company_count_edu = get_trackers_count(edu_df)
 trackers_count_base, company_count_base = get_trackers_count(control_df)
-print(trackers_count_edu)
 
 
 def trackers_crawl_rate(trackers, list_len):
@@ -115,7 +140,7 @@ df_company_base = pd.DataFrame({"company": companys, "services_rate": companys_r
 
 df_company_rate = df_company_edu.merge(df_company_base, on="company", how="outer")
 df_company_rate.columns = ["company", "edu", "no-edu"]
-df_company_rate.to_csv("dataset_archive/df_company_rate_compare.csv", index=None)
+df_company_rate.to_csv("dataset_archive/df_company_rate_compare_all.csv", index=None)
 
 
 df_trackers_rate_edu = trackers_crawl_rate(
@@ -130,4 +155,6 @@ df_trackers_rate = df_trackers_rate_edu.merge(
 )
 print(df_trackers_rate.head())
 df_trackers_rate.columns = ["tracker", "edu", "no-edu"]
-df_trackers_rate.to_csv("dataset_archive/tracker_edu_non_edu_compare.csv", index=None)
+df_trackers_rate.to_csv(
+    "dataset_archive/tracker_edu_non_edu_compare_all.csv", index=None
+)
