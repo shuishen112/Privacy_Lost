@@ -61,19 +61,19 @@ def collect_trackers(type, year):
         result = process_warc_from_archive(file, parser=get_text_selectolax)
         if result:
             url, tracker_list = result
-            urls.append(url)
+            urls.append(file_name)
             trackesr.append(tracker_list)
         else:
             # if result is None, it means this file can not be archved by the waybackpy
             url = file.split("/")[-1][:-3]
             tracker_list = None
-            urls.append(url)
+            urls.append(file_name)
             trackesr.append(tracker_list)
             print("empty file", file)
 
     df_edu_history = pd.DataFrame({"url": urls, "3p-domain": trackesr})
     df_edu_history.to_csv(
-        f"dataset_archive/{type}_exclude_{args['tracker_type']}_{year}.csv", index=None
+        f"dataset_archive/{type}_{args['tracker_type']}_{year}.csv", index=None
     )
 
 

@@ -10,14 +10,20 @@ resource:
 
 https://plotly.com/python/continuous-error-bars/
 """
-
-from turtle import fillcolor
 import plotly.graph_objects as go
 import pandas as pd
 import plotly.express as px
 from plotly.subplots import make_subplots
 import numpy as np
+import matplotlib.pyplot as plt
+import sys
+from os import path
 
+sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
+from config import args
+
+tracker_type = args["tracker_type"]
+element_type = args["element_type"]
 x_base = [
     "2012",
     "2013",
@@ -37,85 +43,113 @@ def plot_average_change_rate():
     # from stastics_cal import trackers_average_edu, trackers_average_base
 
     trackers_average_base = pd.read_csv(
-        "dataset_archive/frame_control_count.csv", sep="\t"
+        f"dataset_archive/frame_control_count_{tracker_type}{element_type}.csv",
+        sep="\t",
     )
-    trackers_average_edu = pd.read_csv("dataset_archive/frame_edu_count.csv", sep="\t")
-
-    fig = go.Figure()
-
-    fig.add_trace(
-        go.Line(
-            x=x_base,
-            y=np.log(trackers_average_base.mean()),
-            name="no-edu websites mean",
-            text="hello",
-        )
+    trackers_average_edu = pd.read_csv(
+        f"dataset_archive/frame_edu_count_{tracker_type}{element_type}.csv", sep="\t"
     )
+    plt.plot(
+        x_base,
+        np.log(trackers_average_edu.mean()),
+        color="red",
+        marker="o",
+        label="edu",
+    )
+    plt.plot(
+        x_base,
+        np.log(trackers_average_base.mean()),
+        color="blue",
+        marker="+",
+        label="non-edu",
+        
+    )
+    plt.xlabel("Year", fontsize=14)
+    plt.ylabel("Average number of trackers", fontsize=14)
+    plt.yticks(np.arange(0, 1.5, step=0.1))
+    plt.legend()
+    plt.savefig(
+        f"images/third_party_change_compare_{tracker_type}{element_type}.png", dpi=200
+    )
+    # fig = go.Figure()
 
     # fig.add_trace(
     #     go.Line(
-    #         name="no-edu websites std",
     #         x=x_base,
-    #         y=trackers_average_base.std(),
+    #         y=np.log(trackers_average_base.mean()),
+    #         name="no-edu websites mean",
+    #         text="hello",
     #     )
     # )
 
-    fig.add_trace(
-        go.Line(
-            x=x_base,
-            y=np.log(trackers_average_edu.mean()),
-            name="edu websites mean",
-        )
-    )
+    # # fig.add_trace(
+    # #     go.Line(
+    # #         name="no-edu websites std",
+    # #         x=x_base,
+    # #         y=trackers_average_base.std(),
+    # #     )
+    # # )
 
     # fig.add_trace(
     #     go.Line(
-    #         name="edu websites std",
     #         x=x_base,
-    #         y=trackers_average_edu.std(),
+    #         y=np.log(trackers_average_edu.mean()),
+    #         name="edu websites mean",
     #     )
     # )
 
-    fig.update_layout(legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01))
-    fig.update_layout(
-        legend=dict(
-            yanchor="bottom",
-            y=0.01,
-            xanchor="right",
-            x=0.99,
-        )
-    )
+    # # fig.add_trace(
+    # #     go.Line(
+    # #         name="edu websites std",
+    # #         x=x_base,
+    # #         y=trackers_average_edu.std(),
+    # #     )
+    # # )
 
-    # large_rockwell_template = dict(
-    #     layout=go.Layout(title_font=dict(family="Rockwell", size=24))
+    # fig.update_layout(legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01))
+    # fig.update_layout(
+    #     legend=dict(
+    #         yanchor="bottom",
+    #         y=0.01,
+    #         xanchor="right",
+    #         x=0.99,
+    #     )
     # )
 
-    fig.update_layout(
-        margin=dict(l=10, r=10, b=5, t=5, pad=4),
-        # paper_bgcolor="rgba(0,0,0,0)",
-        # plot_bgcolor="rgba(0,0,0,0)"
-        # template=large_rockwell_template,
-    )
+    # # large_rockwell_template = dict(
+    # #     layout=go.Layout(title_font=dict(family="Rockwell", size=24))
+    # # )
 
-    # fig.update_xaxes(showline=True, linewidth=2, linecolor="black", mirror=True)
-    # fig.update_yaxes(showline=True, linewidth=2, linecolor="black", mirror=True)
-    # fig.update_xaxes(showgrid=True, gridwidth=1, gridcolor="black")
-    # fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor="black")
-    fig.update_layout(
-        # title="Plot Title",
-        xaxis_title="Year",
-        yaxis_title="Average number of trackers",
-        # legend_title="Legend Title",
-        font=dict(
-            # family="Arial Black",
-            size=18,
-            # color="RebeccaPurple"
-        ),
-    )
+    # fig.update_layout(
+    #     margin=dict(l=10, r=10, b=5, t=5, pad=4),
+    #     # paper_bgcolor="rgba(0,0,0,0)",
+    #     # plot_bgcolor="rgba(0,0,0,0)"
+    #     # template=large_rockwell_template,
+    # )
 
-    fig.write_image("images/third_party_change_compare.pdf")
-    fig.show()
-    fig.write_image("images/third_party_change_compare.pdf")
+    # # fig.update_xaxes(showline=True, linewidth=2, linecolor="black", mirror=True)
+    # # fig.update_yaxes(showline=True, linewidth=2, linecolor="black", mirror=True)
+    # # fig.update_xaxes(showgrid=True, gridwidth=1, gridcolor="black")
+    # # fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor="black")
+    # fig.update_layout(
+    #     # title="Plot Title",
+    #     xaxis_title="Year",
+    #     yaxis_title="Average number of trackers",
+    #     # legend_title="Legend Title",
+    #     font=dict(
+    #         # family="Arial Black",
+    #         size=18,
+    #         # color="RebeccaPurple"
+    #     ),
+    # )
+
+    # fig.write_image(
+    #     f"images/third_party_change_compare_{tracker_type}{element_type}.pdf"
+    # )
+    # fig.show()
+    # fig.write_image(
+    #     f"images/third_party_change_compare_{tracker_type}{element_type}.pdf"
+    # )
 
 
 ########################### plot the rate change of edu and non-edu #######
@@ -258,7 +292,7 @@ def plot_test():
 
 def plot_median_min_max():
 
-    from stastics_cal import plot_get_df_count_all_year
+    from pipeline_plot_picture.stastics_ca_45_2l import plot_get_df_count_all_year
 
     df_count_all_year_edu, df_count_all_year_base = plot_get_df_count_all_year()
     # print(df_count_all_year_base.loc[df_count_all_year_base.trackers > 40])
@@ -327,7 +361,7 @@ def plot_median_min_max():
     fig.write_image("images/median_min_max.pdf")
 
 
-# plot_average_change_rate()
+plot_average_change_rate()
 # plot_median_min_max()
 # plot_test()
-plot_rate_change_of_edu_non_edu()
+# plot_rate_change_of_edu_non_edu()

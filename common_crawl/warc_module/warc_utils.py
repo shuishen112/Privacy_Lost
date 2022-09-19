@@ -50,10 +50,12 @@ thirdparties = pd.read_csv(
 )
 
 whotracksme = pd.read_csv("resource/whotracksme_trackers.txt", names=["domain"])
-
+intersection = pd.read_csv("resource/CommonListOfTrackers.txt", names=["domain"])
 
 if tracker_type == "who":
     thirdparties = whotracksme
+elif tracker_type == "inter":
+    thirdparties = intersection
 regex = "((?<=[^a-zA-Z0-9])(?:https?\:\/\/|[a-zA-Z0-9]{1,}\.{1}|\b)(?:\w{1,}\.{1}){1,5}(?:com|org|edu|gov|uk|net|ca|de|jp|fr|au|us|ru|ch|it|nl|se|no|es|mil|iq|io|ac|ly|sm){1}(?:\/[a-zA-Z0-9]{1,})*)"
 
 tracker_list = thirdparties["domain"].to_list()
@@ -72,12 +74,34 @@ def get_domain(url):
     if is_string_an_url(url):
         domain = str(urlparse(url).netloc)
         domain = tldextract.extract(str(urlparse(url).netloc)).domain
+        if domain == "jpg":
+            print(tldextract.extract(str(urlparse(url).netloc)))
         # logger.info("url:{}-----domain:{}".format(url, domain))
         if domain not in domain_url:
             domain_url[domain] = url
             # fout.write(domain + "\t" + url + "\n")
     else:
         domain = None
+    return domain
+
+def get_domain_from_cc(url):
+    if not url:
+        return None
+    if is_string_an_url(url):
+        domain = str(urlparse(url).netloc)
+        domain = tldextract.extract(str(urlparse(url).netloc)).domain
+        # logger.info("url:{}-----domain:{}".format(url, domain))
+        if domain not in domain_url:
+            domain_url[domain] = url
+            # fout.write(domain + "\t" + url + "\n")
+    else:
+        domain = None
+    return domain
+
+
+def get_domain_suffix(url):
+    domain = tldextract.extract(url).domain
+    # suffix = tldextract.extract(url).suffix
     return domain
 
 
@@ -89,7 +113,7 @@ def is_string_an_url(url_string: str) -> bool:
 
     return result
 
-
+# now is to collecting from cc
 def get_text_selectolax(html):
     trackers = []
     # try:
@@ -107,7 +131,9 @@ def get_text_selectolax(html):
                 trackers.append("google-analytics")
             if "href" in node.attributes:
                 url = node.attributes["href"]
-                domain = get_domain(url)
+                domain = get_domain_from_cc(url)
+                if domain == "jpg":
+                    print(url)
                 if domain:
                     if tracker_type == "all_tracker":
                         trackers.append(domain)
@@ -115,7 +141,9 @@ def get_text_selectolax(html):
                         trackers.append(domain)
             if "src" in node.attributes:
                 url = node.attributes["src"]
-                domain = get_domain(url)
+                domain = get_domain_from_cc(url)
+                if domain == "jpg":
+                    print(url)
                 if domain:
                     if tracker_type == "all_tracker":
                         trackers.append(domain)
@@ -129,7 +157,9 @@ def get_text_selectolax(html):
 
                 result = re.findall(regex, text)
                 for url in result:
-                    domain = get_domain(url)
+                    domain = get_domain_from_cc(url)
+                    if domain == "jpg":
+                        print(url)
                     if domain:
                         if tracker_type == "all_tracker":
                             trackers.append(domain)
@@ -179,7 +209,7 @@ def process_warc_from_archive(filename, offset=None, length=None, parser=None):
 
 def process_warc_froms3(file_name, offset=None, length=None, parser=None):
 
-    s3 = boto3.client("s3", config=Config(signature_version=UNSIGNED))
+    s3 = boto3.client("s3")
     # Count the range
     offset_end = offset + length - 1
     byte_range = "bytes={offset}-{end}".format(offset=offset, end=offset_end)
@@ -188,17 +218,14 @@ def process_warc_froms3(file_name, offset=None, length=None, parser=None):
     for record in ArchiveIterator(resp):
         url = record.rec_headers.get_header("WARC-Target-URI")
         text = record.content_stream().read()
-
         trackers = parser(text)
-        print(url, set(trackers))
+        trackers = list(set(trackers))
+        # print(url, set(trackers))
+        return (url, ",".join(trackers))
 
 
 # process_warc_from_archive("example_from_s3.warc", parser=get_text_selectolax)
-# filename = "crawl-data/CC-MAIN-2021-43/segments/1634323585171.16/warc/CC-MAIN-20211017082600-20211017112600-00715.warc.gz"
-# offset = 1032823103
-# length = 15075
-# result = process_warc_froms3(filename, offset, length, parser=get_text_selectolax)
-# print(result)
+
 # import re
 
 # with open('CC-MAIN-20210513173321-20210513203321-00163.warc',encoding='utf-8',errors='ignore') as fin:
@@ -215,9 +242,10 @@ def process_warc_froms3(file_name, offset=None, length=None, parser=None):
 ##################### 把s3文件下载下来分析 ###############
 
 
-# filename = 'crawl-data/CC-MAIN-2019-04/segments/1547583657907.79/warc/CC-MAIN-20190116215800-20190117001800-00071.warc.gz'
-# offset = 329439239
-# length = 24362
+# filename = "crawl-data/CC-MAIN-2015-35/segments/1440645167592.45/warc/CC-MAIN-20150827031247-00093-ip-10-171-96-226.ec2.internal.warc.gz,2015"
+# offset = 631275067
+# length = 4394
+
 
 ########### 把s3 文件下载下来放到本地
 

@@ -2,9 +2,20 @@ import pandas as pd
 import tldextract
 from tqdm import tqdm
 
-frame_base = pd.read_csv("dataset_archive/frame_control.csv", sep="\t")
-frame_edu = pd.read_csv("dataset_archive/frame_edu.csv", sep="\t")
+import sys
+from os import path
 
+sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
+from config import args
+
+tracker_type = args["tracker_type"]
+element_type = args["element_type"]
+frame_base = pd.read_csv(
+    f"dataset_archive/frame_control_{tracker_type}{element_type}.csv", sep="\t"
+)
+frame_edu = pd.read_csv(
+    f"dataset_archive/frame_edu_{tracker_type}{element_type}.csv", sep="\t"
+)
 
 # frame_base = frame_base.sample(n=500)
 # frame_edu = frame_edu.sample(n=500)
@@ -198,7 +209,7 @@ def plot_get_rate_over_year():
 
     frame_list_edu = get_frame_list(frame_edu)
     df_trackers_frame_list_edu = []
-    for frame in frame_list_edu:
+    for frame in tqdm(frame_list_edu):
         df_trackers_count = get_trackers_count(frame)
         df_trackers_frame = trackers_crawl_rate(
             df_trackers_count.most_common(1000), len(frame)
@@ -207,7 +218,7 @@ def plot_get_rate_over_year():
 
     frame_list_base = get_frame_list(frame_base)
     df_trackers_frame_list_base = []
-    for frame in frame_list_base:
+    for frame in tqdm(frame_list_base):
         df_trackers_count = get_trackers_count(frame)
         df_trackers_frame = trackers_crawl_rate(
             df_trackers_count.most_common(1000), len(frame)
@@ -223,11 +234,17 @@ def plot_get_rate_over_year():
         df_rate_merge_base = df_rate_merge_base.merge(df, how="outer", on="tracker")
 
     df_rate_merge_edu.columns = ["trackers"] + x_base
-    df_rate_merge_edu.to_csv("dataset_archive/df_rate_merge_edu.csv", index=None)
+    df_rate_merge_edu.to_csv(
+        f"dataset_archive/df_rate_merge_edu_{tracker_type}{element_type}.csv",
+        index=None,
+    )
     # print(df_rate_merge_edu.head())
 
     df_rate_merge_base.columns = ["trackers"] + x_base
-    df_rate_merge_base.to_csv("dataset_archive/df_rate_merge_base.csv", index=None)
+    df_rate_merge_base.to_csv(
+        f"dataset_archive/df_rate_merge_base_{tracker_type}{element_type}.csv",
+        index=None,
+    )
     # print(df_rate_merge_base.head())
 
 
@@ -251,5 +268,6 @@ def KS_test_over_the_year():
 
     df_result = pd.DataFrame({"year": names[1:], "statistic": stat, "pvalue": p_value})
     df_result.to_csv("pipeline_plot_picture/ks_test.csv", index=None, sep=",")
+
 
 plot_get_rate_over_year()
