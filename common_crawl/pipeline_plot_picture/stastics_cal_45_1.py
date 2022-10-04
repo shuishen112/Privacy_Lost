@@ -7,22 +7,22 @@ from os import path
 sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
 from config import args
 
-tracker_type = args["tracker_type"]
-element_type = args["element_type"]
+tracker_type = args["tracker_type"]  # who all third parties
+element_type = args["element_type"]  # "" or exclude
 
 
 def get_register_domain(row):
     url = row["url"].split("//")[-1]
-    if url == '':
+    if url == "":
         url = row["url"].split("//")[-2]
     domain = tldextract.extract(url).domain
     suffix = tldextract.extract(url).suffix
     subdomain = tldextract.extract(url).subdomain
-    if subdomain == '':
+    if subdomain == "":
         name = ".".join([domain, suffix])
     else:
-        name = ".".join([subdomain,domain, suffix])
-    name = name.replace("www.",'')
+        name = ".".join([subdomain, domain, suffix])
+    name = name.replace("www.", "")
     return name
 
 

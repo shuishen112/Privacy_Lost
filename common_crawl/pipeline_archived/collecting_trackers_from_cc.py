@@ -53,35 +53,54 @@ def collect_trackers_from_map_cc(row):
         print(e)
 
 
-# df["trackers"] = df.parallel_apply(
-#     collect_trackers_from_cc, axis=1, result_type="expand"
-# )
-# df[["year", "url", "trackers"]].to_csv("dataset_cc/cc_dataset.csv")
+# files = glob.glob("dataset_cc/*.txt")
+# for e, f in enumerate(files):
 
+#     df = pd.read_csv(
+#         f,
+#         names=["url", "cc_path", "year", "offset", "length"],
+#     )
 
-files = glob.glob("dataset_cc/*.txt")
-for e, f in enumerate(files):
+#     file_name = f.split("_")[-1]
 
-    df = pd.read_csv(
-        f,
-        names=["url", "cc_path", "year", "offset", "length"],
-    )
+#     fout = open(f"dataset_cc/cc_dataset_{file_name}", "w", encoding="utf-8")
 
-    file_name = f.split("_")[-1]
+#     v = df.values
 
-    fout = open(f"dataset_cc/cc_dataset_{file_name}", "w", encoding="utf-8")
+#     # for vv in v:
+#     #     collect_trackers_from_map_cc(vv)
 
-    v = df.values
+#     pool = mp.Pool(mp.cpu_count())
 
-    # for vv in v:
-    #     collect_trackers_from_map_cc(vv)
+#     # pool.map(collect_trackers_from_map_cc, list(v))
+#     for _ in tqdm(
+#         pool.imap_unordered(collect_trackers_from_map_cc, list(v)), total=len(df)
+#     ):
+#         pass
+#     pool.close()
+#     pool.join()
 
-    pool = mp.Pool(mp.cpu_count())
+fout = open(f"dataset_cc/cc_dataset_england.txt", "w", encoding="utf-8")
+df = pd.read_csv("resource/england.csv")[
+    [
+        "url_host_name",
+        "warc_filename",
+        "year",
+        "warc_record_offset",
+        "warc_record_length",
+    ]
+]
+v = df.values
 
-    # pool.map(collect_trackers_from_map_cc, list(v))
-    for _ in tqdm(
-        pool.imap_unordered(collect_trackers_from_map_cc, list(v)), total=len(df)
-    ):
-        pass
-    pool.close()
-    pool.join()
+# for vv in v:
+#     collect_trackers_from_map_cc(vv)
+
+pool = mp.Pool(mp.cpu_count())
+
+# pool.map(collect_trackers_from_map_cc, list(v))
+for _ in tqdm(
+    pool.imap_unordered(collect_trackers_from_map_cc, list(v)), total=len(df)
+):
+    pass
+pool.close()
+pool.join()

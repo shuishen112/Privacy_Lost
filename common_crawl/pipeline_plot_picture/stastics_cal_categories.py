@@ -5,6 +5,7 @@ import tldextract
 from collections import Counter
 import sys
 from os import path
+import argparse
 
 sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
 from config import args
@@ -12,19 +13,29 @@ from config import args
 tracker_type = args["tracker_type"]
 element_type = args["element_type"]
 
+parser = argparse.ArgumentParser()
+parser.add_argument(
+    "--year",
+    default="2012",
+    help="collecting year",
+)
+
+args_command = parser.parse_args()
+year = args_command.year
+
 if element_type == "exclude":
 
     control_df = pd.read_csv(
-        f"dataset_archive/control_archive_ali_exclude_{tracker_type}_2021.csv"
+        f"dataset_archive/control_archive_ali_exclude_{tracker_type}_{year}.csv"
     )
     edu_df = pd.read_csv(
-        f"dataset_archive/edu_archive_ali_exclude_{tracker_type}_2021.csv"
+        f"dataset_archive/edu_archive_ali_exclude_{tracker_type}_{year}.csv"
     )
 else:
     control_df = pd.read_csv(
-        f"dataset_archive/control_archive_ali_{tracker_type}_2021.csv"
+        f"dataset_archive/control_archive_ali_{tracker_type}_{year}.csv"
     )
-    edu_df = pd.read_csv(f"dataset_archive/edu_archive_ali_{tracker_type}_2021.csv")
+    edu_df = pd.read_csv(f"dataset_archive/edu_archive_ali_{tracker_type}_{year}.csv")
 
 
 def get_whotracksme():
@@ -202,7 +213,7 @@ df_category_base = pd.DataFrame({"category": categorys, "rate": categorys_rate})
 df_category_rate = df_category_edu.merge(df_category_base, on="category", how="outer")
 df_category_rate.columns = ["category", "edu", "no-edu"]
 df_category_rate.to_csv(
-    f"dataset_archive/df_category_rate_compare_{tracker_type}{element_type}.csv",
+    f"dataset_archive/df_category_rate_compare_{tracker_type}{element_type}_{year}.csv",
     index=None,
 )
 

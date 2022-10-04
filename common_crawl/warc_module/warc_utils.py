@@ -8,18 +8,14 @@ FilePath: /undefined/Users/zhansu/Documents/phd/privacy_lost/second_week/warc_te
 """
 # coding: utf-8
 
-from time import time
-
 import re
-from bs4 import BeautifulSoup
 from selectolax.parser import HTMLParser
 from urllib.parse import urlparse
 import pandas as pd
 import boto3
 
-from botocore import UNSIGNED
-from botocore.client import Config
-import json
+
+
 from warcio.archiveiterator import ArchiveIterator
 import tldextract
 import logging
@@ -31,7 +27,7 @@ logger = logging.getLogger("webtracking.warc_tracking")
 
 # 获得trackers
 tracker_type = args["tracker_type"]
-
+print(tracker_type)
 thirdparties = pd.read_csv(
     "resource/labeled-thirdparties.csv",
     sep="\t",
@@ -74,8 +70,6 @@ def get_domain(url):
     if is_string_an_url(url):
         domain = str(urlparse(url).netloc)
         domain = tldextract.extract(str(urlparse(url).netloc)).domain
-        if domain == "jpg":
-            print(tldextract.extract(str(urlparse(url).netloc)))
         # logger.info("url:{}-----domain:{}".format(url, domain))
         if domain not in domain_url:
             domain_url[domain] = url
@@ -83,6 +77,7 @@ def get_domain(url):
     else:
         domain = None
     return domain
+
 
 def get_domain_from_cc(url):
     if not url:
@@ -99,10 +94,10 @@ def get_domain_from_cc(url):
     return domain
 
 
-def get_domain_suffix(url):
-    domain = tldextract.extract(url).domain
-    # suffix = tldextract.extract(url).suffix
-    return domain
+# def get_domain_suffix(url):
+#     domain = tldextract.extract(url).domain
+#     # suffix = tldextract.extract(url).suffix
+#     return domain
 
 
 def is_string_an_url(url_string: str) -> bool:
@@ -112,6 +107,7 @@ def is_string_an_url(url_string: str) -> bool:
         return False
 
     return result
+
 
 # now is to collecting from cc
 def get_text_selectolax(html):
@@ -131,21 +127,18 @@ def get_text_selectolax(html):
                 trackers.append("google-analytics")
             if "href" in node.attributes:
                 url = node.attributes["href"]
-                domain = get_domain_from_cc(url)
-                if domain == "jpg":
-                    print(url)
+                domain = get_domain(url)
                 if domain:
-                    if tracker_type == "all_tracker":
+                    if tracker_type == "all":
                         trackers.append(domain)
                     elif domain in tracker_list:
                         trackers.append(domain)
             if "src" in node.attributes:
                 url = node.attributes["src"]
-                domain = get_domain_from_cc(url)
-                if domain == "jpg":
-                    print(url)
+                domain = get_domain(url)
+
                 if domain:
-                    if tracker_type == "all_tracker":
+                    if tracker_type == "all":
                         trackers.append(domain)
                     elif domain in tracker_list:
                         trackers.append(domain)
@@ -157,11 +150,10 @@ def get_text_selectolax(html):
 
                 result = re.findall(regex, text)
                 for url in result:
-                    domain = get_domain_from_cc(url)
-                    if domain == "jpg":
-                        print(url)
+                    domain = get_domain(url)
+
                     if domain:
-                        if tracker_type == "all_tracker":
+                        if tracker_type == "all":
                             trackers.append(domain)
                         elif domain in tracker_list:
                             trackers.append(domain)
