@@ -2,41 +2,25 @@
 
 import logging
 from homepage2vec.model import WebsiteClassifier
+import operator
 from datetime import date
-import argparse
-from tqdm import tqdm
-
-parser = argparse.ArgumentParser()
-parser.add_argument(
-    "--start",
-    default=0,
-    help="start",
-)
-
-parser.add_argument(
-    "--end",
-    default=5000,
-    help="end",
-)
-
-args = parser.parse_args()
-print(args)
-
 
 logging.getLogger().setLevel(logging.DEBUG)
 
 model = WebsiteClassifier()
 # Using readlines()
-file1 = open("eu_urls_4th_sample_list.txt", "r")
+file1 = open("eu_urls_1st_smaple_list.txt", "r")
 Lines = file1.readlines()
 
 today = date.today()
 print("Starting date and time:", today)
 count = 0
 # Strips the newline character
-
-for line in tqdm(Lines[int(args.start) : int(args.end)]):
-
+start = input("Enter the starting url index: ")
+end = input("Enter the ending url index: ")
+for line in Lines[int(start) : int(end)]:
+    count += 1
+    print("Line{}: {}".format(count, line.strip()))
     try:
         website = model.fetch_website(line.strip())
 
