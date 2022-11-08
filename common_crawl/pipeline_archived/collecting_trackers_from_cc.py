@@ -8,7 +8,6 @@ from tqdm import tqdm
 import glob
 
 tqdm.pandas()
-from pandarallel import pandarallel
 import multiprocessing as mp
 
 print("Number of processors: ", mp.cpu_count())
@@ -33,6 +32,9 @@ def collect_trackers_from_cc(row):
     return trackers
 
 
+fout = open(f"dataset_cc/cc_dataset_output.txt", "a", encoding="utf-8")
+
+
 def collect_trackers_from_map_cc(row):
     try:
         url_host_name = row[0]
@@ -53,54 +55,52 @@ def collect_trackers_from_map_cc(row):
         print(e)
 
 
-# files = glob.glob("dataset_cc/*.txt")
-# for e, f in enumerate(files):
+files = glob.glob("dataset_cc/parsed_cc_results_*.txt")
+for e, f in enumerate(files):
 
-#     df = pd.read_csv(
-#         f,
-#         names=["url", "cc_path", "year", "offset", "length"],
-#     )
+    df = pd.read_csv(
+        f,
+        names=["url", "cc_path", "year", "offset", "length"],
+    )
 
-#     file_name = f.split("_")[-1]
+    file_name = f.split("_")[-1]
 
-#     fout = open(f"dataset_cc/cc_dataset_{file_name}", "w", encoding="utf-8")
+    v = df.values
 
-#     v = df.values
+    # for vv in v:
+    #     collect_trackers_from_map_cc(vv)
 
-#     # for vv in v:
-#     #     collect_trackers_from_map_cc(vv)
+    pool = mp.Pool(mp.cpu_count())
 
-#     pool = mp.Pool(mp.cpu_count())
+    # pool.map(collect_trackers_from_map_cc, list(v))
+    for _ in tqdm(
+        pool.imap_unordered(collect_trackers_from_map_cc, list(v)), total=len(df)
+    ):
+        pass
+    pool.close()
+    pool.join()
 
-#     # pool.map(collect_trackers_from_map_cc, list(v))
-#     for _ in tqdm(
-#         pool.imap_unordered(collect_trackers_from_map_cc, list(v)), total=len(df)
-#     ):
-#         pass
-#     pool.close()
-#     pool.join()
+# fout = open(f"dataset_cc/cc_dataset_england.txt", "w", encoding="utf-8")
+# df = pd.read_csv("resource/england.csv")[
+#     [
+#         "url_host_name",
+#         "warc_filename",
+#         "year",
+#         "warc_record_offset",
+#         "warc_record_length",
+#     ]
+# ]
+# v = df.values
 
-fout = open(f"dataset_cc/cc_dataset_england.txt", "w", encoding="utf-8")
-df = pd.read_csv("resource/england.csv")[
-    [
-        "url_host_name",
-        "warc_filename",
-        "year",
-        "warc_record_offset",
-        "warc_record_length",
-    ]
-]
-v = df.values
+# # for vv in v:
+# #     collect_trackers_from_map_cc(vv)
 
-# for vv in v:
-#     collect_trackers_from_map_cc(vv)
+# pool = mp.Pool(mp.cpu_count())
 
-pool = mp.Pool(mp.cpu_count())
-
-# pool.map(collect_trackers_from_map_cc, list(v))
-for _ in tqdm(
-    pool.imap_unordered(collect_trackers_from_map_cc, list(v)), total=len(df)
-):
-    pass
-pool.close()
-pool.join()
+# # pool.map(collect_trackers_from_map_cc, list(v))
+# for _ in tqdm(
+#     pool.imap_unordered(collect_trackers_from_map_cc, list(v)), total=len(df)
+# ):
+#     pass
+# pool.close()
+# pool.join()

@@ -121,8 +121,8 @@ urls = []
 with open("missing_archive_clean.csv", "r", encoding="utf8") as file:
     urls = file.readlines()
     urls = [line.rstrip() for line in urls]
-    input_urls = urls[1000000:2000000]
-f1 = open("trackers_output_200.txt", "a")
+    input_urls = urls[800000:1000000]
+f1 = open("trackers_output_100.txt", "a")
 
 
 def task(u):

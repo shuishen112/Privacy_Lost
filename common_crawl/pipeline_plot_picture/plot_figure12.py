@@ -147,4 +147,5 @@ def plot_figure12(df_rate, draw_type):
 # plot_figure12(df_rate_company, "company")
 
 df_rate_tracker = pd.read_csv("dataset_archive/{}".format(name_dict["tracker"]))[:10]
+print(df_rate_tracker)
 plot_figure12(df_rate_tracker, "tracker")

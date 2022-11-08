@@ -1,4 +1,6 @@
 ##################### collecting archived dataset ##########
+
+# This is the file to collecting the dataset from internet archive and store the zip file in local machine.
 import time
 import glob
 import pandas as pd
@@ -11,6 +13,7 @@ sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
 from pipeline_archived.utils import collect_dataset
 from pipeline_archived.utils import collect_dataset_from_ali
 from tqdm import tqdm
+
 tqdm.pandas()
 t = time.time()
 # df = pd.read_csv(

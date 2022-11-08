@@ -1,11 +1,11 @@
-'''
+"""
 Author: Zhan
 Date: 2021-06-15 23:46:43
 LastEditTime: 2022-01-19 13:05:42
 LastEditors: Please set LastEditors
 Description: In User Settings Edit
 FilePath: /common_crawl/education_extraction.py
-'''
+"""
 # 要添加一个新单元，输入 '# %%'
 # 要添加一个新的标记单元，输入 '# %% [markdown]'
 import argparse
@@ -38,78 +38,100 @@ import tempfile
 regex = "((?<=[^a-zA-Z0-9])(?:https?\:\/\/|[a-zA-Z0-9]{1,}\.{1}|\b)(?:\w{1,}\.{1}){1,5}(?:com|org|edu|gov|uk|net|ca|de|jp|fr|au|us|ru|ch|it|nl|se|no|es|mil|iq|io|ac|ly|sm){1}(?:\/[a-zA-Z0-9]{1,})*)"
 
 
-LOGGING_FORMAT = '%(asctime)s %(levelname)s %(name)s: %(message)s'
+LOGGING_FORMAT = "%(asctime)s %(levelname)s %(name)s: %(message)s"
 
 #  input parameters
 
-name = 'CCSparkJob'
+name = "CCSparkJob"
 description = "edu_trackers"
-arg_parser = argparse.ArgumentParser(prog=name, description=description,
-                                             conflict_handler='resolve')
+arg_parser = argparse.ArgumentParser(
+    prog=name, description=description, conflict_handler="resolve"
+)
 
-arg_parser.add_argument("--input", help= "input dir")
-arg_parser.add_argument("--output", help="output_dir",default="s3://zhan-commoncrawl/tag_count_output")
+arg_parser.add_argument("--input", help="input dir")
+arg_parser.add_argument(
+    "--output", help="output_dir", default="s3://zhan-commoncrawl/tag_count_output"
+)
 
-arg_parser.add_argument("--num_input_partitions", type=int,
-                        default=400,
-                        help="Number of input splits/partitions, "
-                        "number of parallel tasks to process WARC "
-                        "files/records")
-arg_parser.add_argument("--num_output_partitions", type=int,
-                        default=10,
-                        help="Number of output partitions")
-arg_parser.add_argument("--output_format", default="parquet",
-                        help="Output format: parquet (default),"
-                        " orc, json, csv")
-arg_parser.add_argument("--output_compression", default="gzip",
-                        help="Output compression codec: None,"
-                        " gzip/zlib (default), snappy, lzo, etc.")
-arg_parser.add_argument("--output_option", action='append', default=[],
-                        help="Additional output option pair"
-                        " to set (format-specific) output options, e.g.,"
-                        " `header=true` to add a header line to CSV files."
-                        " Option name and value are split at `=` and"
-                        " multiple options can be set by passing"
-                        " `--output_option <name>=<value>` multiple times")
+arg_parser.add_argument(
+    "--num_input_partitions",
+    type=int,
+    default=400,
+    help="Number of input splits/partitions, "
+    "number of parallel tasks to process WARC "
+    "files/records",
+)
+arg_parser.add_argument(
+    "--num_output_partitions", type=int, default=10, help="Number of output partitions"
+)
+arg_parser.add_argument(
+    "--output_format",
+    default="parquet",
+    help="Output format: parquet (default)," " orc, json, csv",
+)
+arg_parser.add_argument(
+    "--output_compression",
+    default="gzip",
+    help="Output compression codec: None," " gzip/zlib (default), snappy, lzo, etc.",
+)
+arg_parser.add_argument(
+    "--output_option",
+    action="append",
+    default=[],
+    help="Additional output option pair"
+    " to set (format-specific) output options, e.g.,"
+    " `header=true` to add a header line to CSV files."
+    " Option name and value are split at `=` and"
+    " multiple options can be set by passing"
+    " `--output_option <name>=<value>` multiple times",
+)
 
-arg_parser.add_argument("--local_temp_dir", default=None,
-                        help="Local temporary directory, used to"
-                        " buffer content from S3")
+arg_parser.add_argument(
+    "--local_temp_dir",
+    default=None,
+    help="Local temporary directory, used to" " buffer content from S3",
+)
 
-arg_parser.add_argument("--log_level", default="INFO",
-                        help="Logging level")
-arg_parser.add_argument("--spark-profiler", action='store_true',
-                        help="Enable PySpark profiler and log"
-                        " profiling metrics if job has finished,"
-                        " cf. spark.python.profile")
+arg_parser.add_argument("--log_level", default="INFO", help="Logging level")
+arg_parser.add_argument(
+    "--spark-profiler",
+    action="store_true",
+    help="Enable PySpark profiler and log"
+    " profiling metrics if job has finished,"
+    " cf. spark.python.profile",
+)
 
-arg_parser.add_argument("--edu_file_path", 
-default = 's3://zhan-commoncrawl/Unsaved/Unsaved/2021/06/29/tables/db3772b6-4171-4247-947e-aded8ff28ed8/',
-help = "edu file list stored in s3")
+arg_parser.add_argument(
+    "--edu_file_path",
+    default="s3://zhan-commoncrawl/Unsaved/Unsaved/2021/06/29/tables/db3772b6-4171-4247-947e-aded8ff28ed8/",
+    help="edu file list stored in s3",
+)
 
-arg_parser.add_argument("--num_of_list",default=100,
-help = "small list of files, debug")
+arg_parser.add_argument("--num_of_list", default=100, help="small list of files, debug")
 
-arg_parser.add_argument("--debug",default = 0,
-help = "whether debug or not")
+arg_parser.add_argument("--debug", default=0, help="whether debug or not")
 
 
 args_all = arg_parser.parse_args()
 #  get the edu_file_list
 
-spark = SparkSession \
-    .builder \
-    .appName("Python Spark") \
-    .config("spark.some.config.option", "some-value") \
+spark = (
+    SparkSession.builder.appName("Python Spark")
+    .config("spark.some.config.option", "some-value")
     .getOrCreate()
+)
 
 df = spark.read.parquet(args_all.edu_file_path)
 df.createOrReplaceTempView("education_file_list")
 
 if args_all.debug == 1:
-    sqlDF = spark.sql('SELECT * from education_file_list limit {}'.format(args_all.num_of_list))
+    sqlDF = spark.sql(
+        "SELECT * from education_file_list limit {}".format(args_all.num_of_list)
+    )
 elif args_all.debug == 0:
-    sqlDF = spark.sql('SELECT warc_filename,warc_record_offset,warc_record_length from education_file_list')
+    sqlDF = spark.sql(
+        "SELECT warc_filename,warc_record_offset,warc_record_length from education_file_list"
+    )
 else:
     print("exit")
     exit(0)
@@ -132,35 +154,35 @@ print(warc_filename_list[:10])
 # print(tracker_list[:10])
 # tracker_list = list(map(lambda x:tldextract.extract(x).domain,tracker_list))
 
-tracker_bucket = 's3://aws-emr-resources-235671948910-us-east-1/edu_trackers/'
-df_tracker = spark.read.option("header",True).csv(tracker_bucket)
+tracker_bucket = "s3://aws-emr-resources-235671948910-us-east-1/edu_trackers/"
+df_tracker = spark.read.option("header", True).csv(tracker_bucket)
 df_tracker.createOrReplaceTempView("tracker_list")
 sqlDF_tracker = spark.sql("SELECT domain from tracker_list")
 print(sqlDF_tracker.show())
-tracker_list = sqlDF_tracker.select('domain').rdd.flatMap(lambda x:x).collect()
+tracker_list = sqlDF_tracker.select("domain").rdd.flatMap(lambda x: x).collect()
 print(tracker_list[:10])
-tracker_list = list(map(lambda x:tldextract.extract(x).domain,tracker_list))
+tracker_list = list(map(lambda x: tldextract.extract(x).domain, tracker_list))
 
 
-    
 class JupyterCCSparkJob(object):
     """
     A simple Spark job definition to process Common Crawl data
     """
+
     warc_parse_http_header = True
 
     args = None
     records_processed = None
     warc_input_processed = None
     warc_input_failed = None
-    log_level = 'INFO'
+    log_level = "INFO"
     logging.basicConfig(level=log_level, format=LOGGING_FORMAT)
-    
+
     def parse_arguments(self):
-        """ Returns the parsed arguments from the command line """
+        """Returns the parsed arguments from the command line"""
 
         args = args_all
-        
+
         return args
 
     def add_arguments(self, parser):
@@ -173,8 +195,9 @@ class JupyterCCSparkJob(object):
         return True
 
     def get_output_options(self):
-        return {x[0]: x[1] for x in map(lambda x: x.split('=', 1),
-                                        self.args.output_option)}
+        return {
+            x[0]: x[1] for x in map(lambda x: x.split("=", 1), self.args.output_option)
+        }
 
     def init_logging(self, level=None):
         if level is None:
@@ -196,7 +219,7 @@ class JupyterCCSparkJob(object):
 
     def run(self):
         self.args = args_all
-        
+
         conf = SparkConf()
         conf.set("spark.hadoop.validateOutputSpecs", "false")
         sc = SparkContext.getOrCreate(conf=conf)
@@ -207,99 +230,108 @@ class JupyterCCSparkJob(object):
         if self.args.spark_profiler:
             sc.show_profiles()
 
-# 		sc.stop()
+    # 		sc.stop()
 
     def log_aggregator(self, sc, agg, descr):
         self.get_logger(sc).info(descr.format(agg.value))
 
     def log_aggregators(self, sc):
-        self.log_aggregator(sc, self.warc_input_processed,
-                            'WARC/WAT/WET input files processed = {}')
-        self.log_aggregator(sc, self.warc_input_failed,
-                            'WARC/WAT/WET input files failed = {}')
-        self.log_aggregator(sc, self.records_processed,
-                            'WARC/WAT/WET records processed = {}')
+        self.log_aggregator(
+            sc, self.warc_input_processed, "WARC/WAT/WET input files processed = {}"
+        )
+        self.log_aggregator(
+            sc, self.warc_input_failed, "WARC/WAT/WET input files failed = {}"
+        )
+        self.log_aggregator(
+            sc, self.records_processed, "WARC/WAT/WET records processed = {}"
+        )
 
     @staticmethod
     def reduce_by_key_func(a, b):
         return a + b
-    
 
     def run_job(self, sc):
-        
+
         input_data = sc.parallelize(warc_filename_list)
-           
-        output = input_data.mapPartitionsWithIndex(self.process_warcs)\
-        .reduceByKey(lambda x,y:x)
+
+        output = input_data.mapPartitionsWithIndex(self.process_warcs).reduceByKey(
+            lambda x, y: x
+        )
 
         # print(output.count())
         print(output.take(10))
-        columns = ['url','trackers']
+        columns = ["url", "trackers"]
         df = output.toDF(columns)
-        df.write.format("csv").mode('overwrite').option("header", "true").save(self.args.output)
-        
+        df.write.format("csv").mode("overwrite").option("header", "true").save(
+            self.args.output
+        )
+
         self.log_aggregators(sc)
-    
+
     def process_warcs(self, id_, iterator):
-        s3pattern = re.compile('^s3://([^/]+)/(.+)')
+        s3pattern = re.compile("^s3://([^/]+)/(.+)")
         base_dir = "/user/"
 
         # S3 client (not thread-safe, initialize outside parallelized loop)
-        no_sign_request = botocore.client.Config(
-            signature_version=botocore.UNSIGNED)
-        s3client = boto3.client('s3', config=no_sign_request)
-       
+        no_sign_request = botocore.client.Config(signature_version=botocore.UNSIGNED)
+        s3client = boto3.client("s3", config=no_sign_request)
+
         for item in iterator:
-            warc_filename = item['warc_filename']
-            offset = item['warc_record_offset']
-            length = item['warc_record_length']
+            warc_filename = item["warc_filename"]
+            offset = item["warc_record_offset"]
+            length = item["warc_record_length"]
             self.warc_input_processed.add(1)
-           
-            self.get_logger().info('Reading from S3 {}'.format(warc_filename))
-            
+
+            self.get_logger().info("Reading from S3 {}".format(warc_filename))
+
             offset_end = offset + length - 1
-            byte_range = 'bytes={offset}-{end}'.format(offset=offset, end=offset_end)
+            byte_range = "bytes={offset}-{end}".format(offset=offset, end=offset_end)
 
             warctemp = None
             try:
-                warctemp = s3client.get_object(Bucket='commoncrawl', Key=warc_filename, Range=byte_range)['Body']
+                warctemp = s3client.get_object(
+                    Bucket="commoncrawl", Key=warc_filename, Range=byte_range
+                )["Body"]
             except botocore.client.ClientError as exception:
                 self.get_logger().error(
-                    'Failed to access {}: {}'.format(warc_filename, exception))
+                    "Failed to access {}: {}".format(warc_filename, exception)
+                )
                 self.warc_input_failed.add(1)
                 continue
             stream = warctemp
-            no_parse = (not self.warc_parse_http_header)
-           
+            no_parse = not self.warc_parse_http_header
+
             try:
-                archive_iterator = ArchiveIterator(stream,
-                                                   no_record_parse=no_parse, arc2warc = True)
-                
+                archive_iterator = ArchiveIterator(
+                    stream, no_record_parse=no_parse, arc2warc=True
+                )
+
                 for res in self.iterate_records(warc_filename, archive_iterator):
 
                     yield res
             except ArchiveLoadFailed as exception:
                 self.warc_input_failed.add(1)
                 self.get_logger().error(
-                    'Invalid WARC: {} - {}'.format(warc_filename, exception))
+                    "Invalid WARC: {} - {}".format(warc_filename, exception)
+                )
             finally:
                 stream.close()
 
     def process_record(self, record):
-        raise NotImplementedError('Processing record needs to be customized')
+        raise NotImplementedError("Processing record needs to be customized")
 
     def iterate_records(self, _warc_uri, archive_iterator):
         """Iterate over all WARC records. This method can be customized
-           and allows to access also values from ArchiveIterator, namely
-           WARC record offset and length."""
-    
+        and allows to access also values from ArchiveIterator, namely
+        WARC record offset and length."""
+
         for record in archive_iterator:
             rec_type = record.rec_type
-            url = record.rec_headers.get_header('WARC-Target-URI')
+            url = record.rec_headers.get_header("WARC-Target-URI")
             self.records_processed.add(1)
             # 判断需不需要过滤
-            
-            if record.rec_type == 'response':
+
+            if record.rec_type == "response":
                 res = self.process_record(record)
                 return res
 
@@ -312,27 +344,28 @@ class JupyterCCSparkJob(object):
     @staticmethod
     def is_wet_text_record(record):
         """Return true if WARC record is a WET text/plain record"""
-        return (record.rec_type == 'conversion' and
-                record.content_type == 'text/plain')
+        return record.rec_type == "conversion" and record.content_type == "text/plain"
 
     @staticmethod
     def is_wat_json_record(record):
         """Return true if WARC record is a WAT record"""
-        return (record.rec_type == 'metadata' and
-                record.content_type == 'application/json')
+        return (
+            record.rec_type == "metadata" and record.content_type == "application/json"
+        )
 
     @staticmethod
     def is_html(record):
         """Return true if (detected) MIME type of a record is HTML"""
-        html_types = ['text/html', 'application/xhtml+xml']
-        if (('WARC-Identified-Payload-Type' in record.rec_headers) and
-            (record.rec_headers['WARC-Identified-Payload-Type'] in
-             html_types)):
+        html_types = ["text/html", "application/xhtml+xml"]
+        if ("WARC-Identified-Payload-Type" in record.rec_headers) and (
+            record.rec_headers["WARC-Identified-Payload-Type"] in html_types
+        ):
             return True
         for html_type in html_types:
             if html_type in record.content_type:
                 return True
         return False
+
 
 def get_text_selectolax(html):
     trackers = []
@@ -340,99 +373,104 @@ def get_text_selectolax(html):
         tree = HTMLParser(html)
         if tree.body is None:
             return None
-        
-        for node in tree.tags('style'):
+
+        for node in tree.tags("style"):
             node.decompose()
-        
-#         找到a
-        for node in tree.css('a,link,script,iframe,img'):
+
+        #         找到a
+        for node in tree.css("a,link,script,iframe,img"):
             text = node.text()
-            if ("google-analytics" in text):
+            if "google-analytics" in text:
                 trackers.append("google-analytics")
-            if 'href' in node.attributes:
-                url = node.attributes['href']
+            if "href" in node.attributes:
+                url = node.attributes["href"]
                 domain = tldextract.extract(str(urlparse(url).netloc)).domain
                 if domain in tracker_list:
                     trackers.append(domain)
-            if 'src' in node.attributes:             
-                url = node.attributes['src']
+            if "src" in node.attributes:
+                url = node.attributes["src"]
                 domain = str(urlparse(url).netloc)
                 domain = tldextract.extract(str(urlparse(url).netloc)).domain
                 if domain in tracker_list:
                     trackers.append(domain)
-                    
-            if "type" in node.attributes and node.attributes['type'] == 'text/javascript':
-    
-                result = re.findall(regex,text)
+
+            if (
+                "type" in node.attributes
+                and node.attributes["type"] == "text/javascript"
+            ):
+
+                result = re.findall(regex, text)
                 for url in result:
                     domain = tldextract.extract(str(urlparse(url).netloc)).domain
                     if domain in tracker_list:
                         trackers.append(domain)
-            
-            
+
     except Exception as e:
         print(e)
-    
-    return ','.join(list(set(trackers)))
+
+    return ",".join(list(set(trackers)))
+
 
 def get_text_bs(html):
-    
+
     try:
-        tree = BeautifulSoup(html, 'lxml')
-    
+        tree = BeautifulSoup(html, "lxml")
+
         trackers = []
 
         body = tree.body
         if body is None:
             return None
 
-        for tag in body.select('style'):
+        for tag in body.select("style"):
             tag.decompose()
 
-        text = body.get_text(separator='\n')
-        a = body.find_all('a')
+        text = body.get_text(separator="\n")
+        a = body.find_all("a")
         for aa in a:
-            url = aa.get('href')
+            url = aa.get("href")
             domain = str(urlparse(url).netloc)
-#             如果domain的长度小于三，就不加入tracker
+            #             如果domain的长度小于三，就不加入tracker
 
-#             判断domain 是不是trackers
+            #             判断domain 是不是trackers
 
-            domain = '.'.join(domain.split('.')[-2:])
+            domain = ".".join(domain.split(".")[-2:])
             if len(domain) >= 2 and domain in tracker_list:
                 trackers.append(domain)
 
-        s = body.find_all('script')
+        s = body.find_all("script")
         for ss in s:
-            url = ss.get('src')
+            url = ss.get("src")
             domain = str(urlparse(url).netloc)
-            domain = '.'.join(domain.split('.')[-2:])
+            domain = ".".join(domain.split(".")[-2:])
             if len(domain) >= 2 and domain in tracker_list:
                 trackers.append(domain)
 
     except Exception as e:
         print(e)
-    
-    return ','.join(list(set(trackers)))
+
+    return ",".join(list(set(trackers)))
+
 
 class Trackers_extraction_job(JupyterCCSparkJob):
-    """ Count HTML tag names in Common Crawl WARC files"""
+    """Count HTML tag names in Common Crawl WARC files"""
 
     name = "TagCount"
 
     # match HTML tags (element names) on binary HTML data
-    html_tag_pattern = re.compile(b'<([a-z0-9]+)')
+    html_tag_pattern = re.compile(b"<([a-z0-9]+)")
 
     def process_record(self, record):
-        
-        if record.rec_type != 'response':
+
+        if record.rec_type != "response":
             return
-        url = record.rec_headers.get_header('WARC-Target-URI')
+        url = record.rec_headers.get_header("WARC-Target-URI")
         domain = urlparse(url).netloc
         text = record.content_stream().read()
         trackers = get_text_selectolax(text)
-        if url and url.strip() != '':
+        if url and url.strip() != "":
             yield domain, trackers
-            
+
+
 job = Trackers_extraction_job()
 job.run()

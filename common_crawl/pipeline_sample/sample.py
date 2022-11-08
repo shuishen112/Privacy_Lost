@@ -6,9 +6,9 @@ LastEditors: Please set LastEditors
 Description: In User Settings Edit
 FilePath: /common_crawl/sample.py
 """
-# 对教育网站进行sample
+
 import pandas as pd
-import tldextract
+
 from tqdm import tqdm
 import time
 
@@ -58,7 +58,9 @@ domain_to_rank = dict(zip(sample_list, rank))
 
 print(len(edu_web_list_df[edu_web_list_df[key_compare].isin(sample_list)]))
 
+exit()
 ###################  sample previous ############
+# we have use different version of sampling.
 
 sample = []
 edu = []

@@ -14,8 +14,6 @@ from urllib.parse import urlparse
 import pandas as pd
 import boto3
 
-
-
 from warcio.archiveiterator import ArchiveIterator
 import tldextract
 import logging
@@ -121,7 +119,7 @@ def get_text_selectolax(html):
 
     #         找到a
     try:
-        for node in tree.css("script,iframe,img"):
+        for node in tree.css("a,link,script,iframe,img"):
             text = node.text()
             if "google-analytics" in text:
                 trackers.append("google-analytics")
