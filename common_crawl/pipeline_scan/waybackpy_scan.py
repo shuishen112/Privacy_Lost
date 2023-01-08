@@ -28,19 +28,18 @@ import requests
 
 
 # all the websites
-df = pd.read_csv("resource/edu_repair/sample_all_domain_dmoz.csv")
+# df = pd.read_csv("resource/top10milliondomains_expand.csv")
 
-df = df.sort_values(by="rank")
-df = df.head(20000)
-
-df.to_csv("resource/edu_repair/have_scaned_websites.csv", index=None)
+# df = df.sort_values(by="rank")
+# df = df.sample(10000)
 
 # print(df['edu_domain'].head())
 
-
 # find the url in specific time
 
-collect_key = "edu_domain"
+df = pd.read_csv("RQX/tj.csv")
+
+collect_key = "domain"
 
 
 def get_old_new_time(row):
@@ -62,13 +61,42 @@ def get_old_new_time(row):
         newest = cdx_api.newest()
         newest_time = newest.timestamp
     except Exception as e:
-        oldest_time = "null"
-        newest_time = "null"
+        oldest_time = None
+        newest_time = None
         print(e)
     return oldest_time, newest_time
 
 
-def get_specific_time_url(row, url_year):
+def get_old_new_url(row):
+    """get the oldest and newest time of historical urls
+
+    Args:
+        row (df): pandas df
+
+    Returns:
+        _type_: oldest time and newest time
+    """
+    try:
+        url = row[collect_key]
+        user_agent = "Mozilla/5.0 (Windows NT 5.1; rv:40.0) Gecko/20100101 Firefox/40.0"
+
+        cdx_api = WaybackMachineCDXServerAPI(url, user_agent)
+        oldest = cdx_api.oldest()
+        oldest_time = oldest.timestamp
+        old_url = oldest.archive_url
+        newest = cdx_api.newest()
+        new_url = newest.archive_url
+        newest_time = newest.timestamp
+    except Exception as e:
+        oldest_time = None
+        newest_time = None
+        old_url = None
+        new_url = None
+        print(e)
+    return oldest_time, newest_time, old_url, new_url
+
+
+def get_specific_time_url_df(row, url_year):
     """get specific time
 
     Args:
@@ -88,7 +116,7 @@ def get_specific_time_url(row, url_year):
         )
         near = cdx_api.near(year=url_year)
         archive_url = near.archive_url
-
+        print(archive_url)
     except Exception as e:
         print(e)
         archive_url = None
@@ -127,20 +155,34 @@ def judge_whether_it_can_occur_in_each_year(url, begin_year, end_year):
         print(archive_url)
 
 
-start = time.time()
-judge_whether_it_can_occur_in_each_year("baidu.com", 2012, 2022)
-print(time.time() - start)
+# start = time.time()
+# judge_whether_it_can_occur_in_each_year("baidu.com", 2012, 2022)
+# print(time.time() - start)
 
-# df[['old_edu','new_edu']] = df.iprogress_apply(get_old_new_time,axis = 1,result_type='expand')
+df[["oldest_time", "newest_time", "old_url", "new_url"]] = df.progress_apply(
+    get_old_new_url, axis=1, result_type="expand"
+)
 
-# df.to_csv("resource/edu_repair/edu_time_series_3000_later.csv",index = None)
+df.to_csv("RQX/tj_old_new.csv", index=None)
+
+# df.to_csv("resource/top10million10000_timegap.csv", index=None)
 
 # for year in range(2014, 2022):
-#     t = time.time()
 #     df["history_url"] = df.progress_apply(get_specific_time_url, axis=1, url_year=year)
-#     print("time:", time.time() - t)
+
 #     df[[collect_key, "history_url"]].to_csv(
 #         "resource/edu_repair/{}_historical_year_{}.csv".format(collect_key, str(year)),
 #         index=None,
 #     )
-# print(get_specific_time_url("google.com", 2012))
+# print(get_specific_time_url("www.vvvorden.nl", 2015))
+
+
+# for domain in df["domain"].to_list():
+#     print(domain)
+#     print(get_specific_time_url(domain, 2015))
+
+# df["history_url"] = df.progress_apply(get_specific_time_url_df, axis=1, url_year=2016)
+# df[[collect_key, "history_url"]].to_csv(
+#     "RQX/{}_historical_year_{}.csv".format(collect_key, str(2016)),
+#     index=None,
+# )

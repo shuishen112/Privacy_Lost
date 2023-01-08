@@ -12,6 +12,7 @@ import requests
 import pandas as pd
 from tqdm import tqdm
 import os
+from warcio.archiveiterator import ArchiveIterator
 
 tqdm.pandas()
 
@@ -79,8 +80,38 @@ def collect_dataset(row, year):
         print(e)
 
 
+def extract_trackers_from_internet_archive(url, parser):
+    try:
+        resp = requests.get(url, headers={"Accept-Encoding": "identity"}, stream=True)
+        text = resp.text
+        trackers = parser(text)
+        trackers = list(set(trackers))
+        return trackers
+
+    except Exception as e:
+        print(e)
+
+
+def download_dataset_from_url(url: str):
+    """download individual url and store zip file it in a path
+
+    Args:
+        url (str): url
+    """
+    history_url = url
+    try:
+        resp = requests.get(
+            history_url, headers={"Accept-Encoding": "identity"}, stream=True
+        )
+        return resp.text
+
+    except Exception as e:
+        print(e)
+        return None
+
+
 def collect_dataset_from_url(url: str, path: str):
-    """collect individual url and store it in a path
+    """collect individual url and store zip file it in a path
 
     Args:
         url (str): url

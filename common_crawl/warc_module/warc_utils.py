@@ -20,6 +20,9 @@ import logging
 import validators
 from validators import ValidationFailure
 from config import args
+import gzip
+from botocore.client import Config
+from botocore import UNSIGNED
 
 logger = logging.getLogger("webtracking.warc_tracking")
 
@@ -61,7 +64,16 @@ domain_url = {}
 # fout = open("tracker_url_edu.txt", "w")
 
 
-def get_domain(url):
+def get_domain_from_ia(url):
+    """
+    extract the domain from Internet Archive resource
+
+    Args:
+        url (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
     if not url:
         return None
     url = "https://{}".format(urlparse(url).path.split("//")[-1])
@@ -78,6 +90,15 @@ def get_domain(url):
 
 
 def get_domain_from_cc(url):
+    """
+    extract the domain from Common Crawl
+
+    Args:
+        url (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
     if not url:
         return None
     if is_string_an_url(url):
@@ -107,8 +128,114 @@ def is_string_an_url(url_string: str) -> bool:
     return result
 
 
+def get_outer_link_from_ia(url):
+    """
+    extract the domain from Internet Archive resource
+
+    Args:
+        url (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
+    if not url:
+        return None
+    url = "https://{}".format(urlparse(url).path.split("//")[-1])
+    if is_string_an_url(url):
+        domain = str(urlparse(url).netloc)
+        tld = domain.split(".")[-1]
+        if tld == "tj":
+            return domain
+        else:
+            return None
+    else:
+        domain = None
+    return domain
+
+
+def get_outer_link_from_cc(url):
+    """
+    extract the domain from Common Crawl
+
+    Args:
+        url (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
+    if not url:
+        return None
+    if is_string_an_url(url):
+        domain = str(urlparse(url).netloc)
+        tld = domain.split(".")[-1]
+        if tld == "tj":
+            return domain
+        else:
+            return None
+    else:
+        domain = None
+    return domain
+
+
+def get_outer_link(html):
+    """get outer link of the file.
+
+    Args:
+        html (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
+    outer_links = []
+    # try:
+    tree = HTMLParser(html)
+    if tree.body is None:
+        return outer_links
+    for node in tree.tags("style"):
+        node.decompose()
+
+    #         找到a
+    try:
+        for node in tree.css("a,link,script,iframe,img"):
+            text = node.text()
+
+            if "href" in node.attributes:
+                url = node.attributes["href"]
+                domain = get_outer_link_from_ia(url)
+                if domain is not None:
+                    outer_links.append(domain)
+
+            if "src" in node.attributes:
+                url = node.attributes["src"]
+                domain = get_outer_link_from_ia(url)
+                if domain is not None:
+                    outer_links.append(domain)
+
+            if (
+                "type" in node.attributes
+                and node.attributes["type"] == "text/javascript"
+            ):
+                result = re.findall(regex, text)
+                for url in result:
+                    domain = get_outer_link_from_ia(url)
+                    if domain is not None:
+                        outer_links.append(domain)
+
+    except Exception as e:
+        print(e)
+    return outer_links
+
+
 # now is to collecting from cc
 def get_text_selectolax(html):
+    """extracting the tracker domain from html file
+
+    Args:
+        html (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
     trackers = []
     # try:
     tree = HTMLParser(html)
@@ -125,7 +252,7 @@ def get_text_selectolax(html):
                 trackers.append("google-analytics")
             if "href" in node.attributes:
                 url = node.attributes["href"]
-                domain = get_domain(url)
+                domain = get_domain_from_cc(url)
                 if domain:
                     if tracker_type == "all":
                         trackers.append(domain)
@@ -133,7 +260,7 @@ def get_text_selectolax(html):
                         trackers.append(domain)
             if "src" in node.attributes:
                 url = node.attributes["src"]
-                domain = get_domain(url)
+                domain = get_domain_from_cc(url)
 
                 if domain:
                     if tracker_type == "all":
@@ -148,7 +275,7 @@ def get_text_selectolax(html):
 
                 result = re.findall(regex, text)
                 for url in result:
-                    domain = get_domain(url)
+                    domain = get_domain_from_cc(url)
 
                     if domain:
                         if tracker_type == "all":
@@ -199,7 +326,7 @@ def process_warc_from_archive(filename, offset=None, length=None, parser=None):
 
 def process_warc_froms3(file_name, offset=None, length=None, parser=None):
 
-    s3 = boto3.client("s3")
+    s3 = boto3.client("s3", config=Config(signature_version=UNSIGNED))
     # Count the range
     offset_end = offset + length - 1
     byte_range = "bytes={offset}-{end}".format(offset=offset, end=offset_end)
@@ -212,6 +339,31 @@ def process_warc_froms3(file_name, offset=None, length=None, parser=None):
         trackers = list(set(trackers))
         # print(url, set(trackers))
         return (url, ",".join(trackers))
+
+
+def download_warc_froms3(filename, offset, length):
+
+    # Boto3 anonymour login to common crawl
+    try:
+        s3 = boto3.client("s3")
+        # Count the range
+        offset_end = offset + length - 1
+        byte_range = "bytes={offset}-{end}".format(offset=offset, end=offset_end)
+        gzipped_text = s3.get_object(
+            Bucket="commoncrawl", Key=filename, Range=byte_range
+        )["Body"]
+
+        data = gzip.decompress(gzipped_text.read())
+        text = data.decode("utf-8")
+        return text
+
+        # for record in ArchiveIterator(gzipped_text):
+        #     url = record.rec_headers.get_header("WARC-Target-URI")
+        #     text = record.content_stream().read()
+        #     return text
+    except Exception as e:
+        print(e)
+    return None
 
 
 # process_warc_from_archive("example_from_s3.warc", parser=get_text_selectolax)
@@ -232,40 +384,36 @@ def process_warc_froms3(file_name, offset=None, length=None, parser=None):
 ##################### 把s3文件下载下来分析 ###############
 
 
-# filename = "crawl-data/CC-MAIN-2015-35/segments/1440645167592.45/warc/CC-MAIN-20150827031247-00093-ip-10-171-96-226.ec2.internal.warc.gz,2015"
+# filename = "crawl-data/CC-MAIN-2015-35/segments/1440645167592.45/warc/CC-MAIN-20150827031247-00093-ip-10-171-96-226.ec2.internal.warc.gz"
 # offset = 631275067
 # length = 4394
 
 
 ########### 把s3 文件下载下来放到本地
 
-"""
-import boto3 
+import boto3
 
 from botocore import UNSIGNED
 from botocore.client import Config
-import json
 from warcio.archiveiterator import ArchiveIterator
 import gzip
 
-def collect_from_s3(url,filename,offset,length):
+
+def collect_from_s3(filename, offset, length):
     # Boto3 anonymour login to common crawl
-    s3 = boto3.client('s3',config = Config(signature_version = UNSIGNED))
+    s3 = boto3.client("s3", config=Config(signature_version=UNSIGNED))
     # Count the range
     offset_end = offset + length - 1
-    byte_range = 'bytes={offset}-{end}'.format(offset=offset, end=offset_end)
-    gzipped_text = s3.get_object(Bucket='commoncrawl', Key=filename, Range = byte_range)['Body']
+    byte_range = "bytes={offset}-{end}".format(offset=offset, end=offset_end)
+    gzipped_text = s3.get_object(Bucket="commoncrawl", Key=filename, Range=byte_range)[
+        "Body"
+    ]
 
     data = gzip.decompress(gzipped_text.read())
-    text = data.decode('utf-8')
-    with open("unit_test/{}.warc".format(tldextract.extract(url).domain),"w") as fout:
-        fout.write(text)
+    text = data.decode("utf-8")
+    print(text)
+    # with open("unit_test/{}.warc".format(tldextract.extract(url).domain), "w") as fout:
+    #     fout.write(text)
 
-import json
-with open("cc_url.json") as f:
-    for line in f:
-        data = json.loads(line.strip())
-        print(data['filename'],data['offset'],data['length'])
-        collect_from_s3(data['url'],data['filename'],int(data['offset']),int(data['length']))
-"""
-#######
+
+# collect_from_s3(filename, offset, length)
