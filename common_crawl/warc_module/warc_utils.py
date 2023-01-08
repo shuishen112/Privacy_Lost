@@ -354,7 +354,7 @@ def download_warc_froms3(filename, offset, length):
         )["Body"]
 
         data = gzip.decompress(gzipped_text.read())
-        text = data.decode("utf-8")
+        text = data.decode("latin-1")
         return text
 
         # for record in ArchiveIterator(gzipped_text):
