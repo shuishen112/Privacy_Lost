@@ -84,7 +84,7 @@ def extract_trackers_from_internet_archive(url, parser):
     try:
         resp = requests.get(url, headers={"Accept-Encoding": "identity"}, stream=True)
         text = resp.text
-        trackers = parser(text)
+        trackers = parser(text, source="ia")
         trackers = list(set(trackers))
         return trackers
 

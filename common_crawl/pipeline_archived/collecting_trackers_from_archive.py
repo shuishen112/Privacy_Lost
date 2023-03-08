@@ -6,6 +6,7 @@ import pandas as pd
 import sys
 from os import path
 import logging
+import os
 
 from utils import (
     extract_trackers_from_internet_archive,
@@ -88,25 +89,83 @@ def collect_trackers(type, year):
 
 
 ################################### store the zip file from historical trackers from Internet Archive ###############################
-df_sample_500 = pd.read_csv("RQX/domain_historical_year_2016.csv")
 
-for e, item in df_sample_500.iterrows():
-    domain = item["domain"]
-    history_url = item["history_url"]
-    print(e)
-    text = download_dataset_from_url(history_url)
-    if text is not None:
-        output = f"RQX/IA2016/{domain}.warc"
-        fout = open(output, "w")
-        fout.write(text)
+# for year in range(2017, 2023):
+#     year = str(year)
+#     store_path = f"RQX/10000sample_analysis/IA_archive/{year}"
+#     if not os.path.exists(store_path):
+#         os.makedirs(store_path)
+#     start_time = time.time()
+#     # whether it has been archived
+#     dir_list = os.listdir(store_path)
+#     dir_list = [name[:-5] for name in dir_list]
+#     df_sample_500 = pd.read_csv(
+#         f"RQX/10000sample_analysis/IA/domain_historical_year_{year}.csv",
+#         sep="\t",
+#         names=["domain", "historical_url"],
+#     ).dropna()
+#     for e, item in df_sample_500.iterrows():
 
-#################################### colllecting from historical trackers from Internet Archive ###############################
-# df_sample_500 = pd.read_csv("RQX/domain_historical_year_2016.csv")
+#         domain = item["domain"]
+#         if domain in dir_list:
+#             # it has been archived
+#             continue
+#         history_url = item["historical_url"]
+#         text = download_dataset_from_url(history_url)
+#         if text is not None:
+#             output = f"{store_path}/{domain}.warc"
+#             fout = open(output, "w")
+#             fout.write(text)
+#     end_time = time.time()
+#     print("time consuming:{}".format(end_time - start_time))
+
+#################################### collecting trackers from local machines #################################################
+
+# fout = open("RQX/2015_500_extract_trackers_archive_internet.csv", "w")
+# file_list = os.listdir("RQX/IA2015/")
+
+# for file in tqdm(file_list):
+#     file_name = file[:-5]
+#     text = open(os.path.join("RQX/IA2015/", file)).read()
+#     trackers = get_text_selectolax(text, source="ia")
+#     trackers = list(set(trackers))
+#     if trackers is not None:
+#         fout.write(file_name + "\t" + ",".join(trackers) + "\n")
+#     else:
+#         fout.write(file_name + "\n")
+#     fout.flush()
+
+fout = open("RQX/10000sample_analysis/IA_2014_2019_trackers.csv", "w")
+for year in range(2014, 2020):
+    year = str(year)
+    file_list = os.listdir(f"RQX/10000sample_analysis/IA_archive/{year}")
+
+    for file in tqdm(file_list):
+        file_name = file[:-5]
+        text = open(
+            os.path.join(f"RQX/10000sample_analysis/IA_archive/{year}", file)
+        ).read()
+        trackers = get_text_selectolax(text, source="ia")
+        trackers = list(set(trackers))
+        if trackers is not None:
+            fout.write(year + "\t" + file_name + "\t" + ",".join(trackers) + "\n")
+        else:
+            fout.write(year + "\t" + file_name + "\n")
+        fout.flush()
+
+
+#################################### collecting from historical trackers from Internet Archive ###############################
+# df_sample_500 = pd.read_csv(
+#     "RQX/domain_historical_year_2016.csv",
+#     sep=",",
+#     names=["domain", "historical_url"],
+# )
 
 # fout = open("RQX/2016_500_extract_trackers_archive_internet.csv", "w")
-# for _, item in df_sample_500.iterrows():
+# for e, item in df_sample_500.iterrows():
+#     logger.info(f"collecting number:{e}")
 #     domain = item["domain"]
-#     history_url = item["history_url"]
+#     history_url = item["historical_url"]
 
 #     trackers = extract_trackers_from_internet_archive(history_url, get_text_selectolax)
 #     if trackers is not None:
@@ -115,26 +174,37 @@ for e, item in df_sample_500.iterrows():
 #         fout.write(domain + "\n")
 #     fout.flush()
 
-#################################### colllecting from historical trackers from Internet Archive ###############################
 
-# fout = open("RQX/tj_outlinks_old_one.csv", "w")
-# df_tj = pd.read_csv("RQX/tj_old_new.csv")
+#################################### colllecting outlinks from Internet Archive ###############################
+
+# fout = open("RQX/tj_outlinks_of_old_outlinks.csv", "w")
+# df_tj = pd.read_csv("RQX/tj_outlinkes_old_new.csv")
 # for _, item in df_tj.iterrows():
 #     try:
-#         domain = item["domain"]
+#         domain = item["outlinks"]
 
 #         history_url = item["old_url"]
-#         outer_links = extract_trackers_from_internet_archive(
-#             history_url, get_outer_link
-#         )
+#         print(history_url)
+#         outer_links = extract_trackers_from_internet_archive(history_url, get_outer_link)
 #         fout.write(",".join(outer_links) + "\n")
-#         print(outer_links)
+#         # print(outer_links)å
 #         fout.flush()
 
 #     except Exception as e:
 #         print(e)
 
+########################### collecting from archive from ali
+
+
 # years = list(range(2012, 2022))
 # for year in years:
 #     collect_trackers(f"{args['task_type']}_archive_ali", year)
 # logger.info(time.time() - t)
+
+########################### only test one historical snapshot ###########################
+
+# history_url = (
+#     "https://web.archive.org/web/20151127040830/http://www.region-orlickehory.cz:80/"
+# )
+# trackers = extract_trackers_from_internet_archive(history_url, get_text_selectolax)
+# print(f"len:{len(trackers)}", trackers)

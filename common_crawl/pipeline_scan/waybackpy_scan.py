@@ -37,7 +37,7 @@ import requests
 
 # find the url in specific time
 
-df = pd.read_csv("RQX/tj.csv")
+df = pd.read_csv("RQX/10000sample_analysis/10000sample.csv").head(10)
 
 collect_key = "domain"
 
@@ -116,7 +116,6 @@ def get_specific_time_url_df(row, url_year):
         )
         near = cdx_api.near(year=url_year)
         archive_url = near.archive_url
-        print(archive_url)
     except Exception as e:
         print(e)
         archive_url = None
@@ -159,21 +158,25 @@ def judge_whether_it_can_occur_in_each_year(url, begin_year, end_year):
 # judge_whether_it_can_occur_in_each_year("baidu.com", 2012, 2022)
 # print(time.time() - start)
 
-df[["oldest_time", "newest_time", "old_url", "new_url"]] = df.progress_apply(
-    get_old_new_url, axis=1, result_type="expand"
-)
+# df[["oldest_time", "newest_time", "old_url", "new_url"]] = df.progress_apply(
+#     get_old_new_url, axis=1, result_type="expand"
+# )
 
-df.to_csv("RQX/tj_old_new.csv", index=None)
+# df.to_csv("RQX/tj_outlinkes_old_new.csv", index=None)
 
 # df.to_csv("resource/top10million10000_timegap.csv", index=None)
 
-# for year in range(2014, 2022):
-#     df["history_url"] = df.progress_apply(get_specific_time_url, axis=1, url_year=year)
+for year in range(2014, 2022):
+    df["history_url"] = df.progress_apply(
+        get_specific_time_url_df, axis=1, url_year=year
+    )
 
-#     df[[collect_key, "history_url"]].to_csv(
-#         "resource/edu_repair/{}_historical_year_{}.csv".format(collect_key, str(year)),
-#         index=None,
-#     )
+    df[[collect_key, "history_url"]].to_csv(
+        "RQX/10000sample_analysis/IA/{}_historical_year_{}.csv".format(
+            collect_key, str(year)
+        ),
+        index=None,
+    )
 # print(get_specific_time_url("www.vvvorden.nl", 2015))
 
 

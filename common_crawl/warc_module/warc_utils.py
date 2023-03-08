@@ -76,10 +76,17 @@ def get_domain_from_ia(url):
     """
     if not url:
         return None
-    url = "https://{}".format(urlparse(url).path.split("//")[-1])
     if is_string_an_url(url):
-        domain = str(urlparse(url).netloc)
+        # if http in path
+        path = urlparse(url).path
+        if "http" in path:
+            url = "https://{}".format(path.split("//")[-1])
+
+        # domain = str(urlparse(url).netloc)
         domain = tldextract.extract(str(urlparse(url).netloc)).domain
+        # ignore the "archive"
+        if domain == "archive":
+            return None
         # logger.info("url:{}-----domain:{}".format(url, domain))
         if domain not in domain_url:
             domain_url[domain] = url
@@ -227,7 +234,7 @@ def get_outer_link(html):
 
 
 # now is to collecting from cc
-def get_text_selectolax(html):
+def get_text_selectolax(html, source="cc"):
     """extracting the tracker domain from html file
 
     Args:
@@ -244,6 +251,11 @@ def get_text_selectolax(html):
     for node in tree.tags("style"):
         node.decompose()
 
+    if source == "cc":
+        get_domain = get_domain_from_cc
+    elif source == "ia":
+        get_domain = get_domain_from_ia
+
     #         找到a
     try:
         for node in tree.css("a,link,script,iframe,img"):
@@ -252,7 +264,8 @@ def get_text_selectolax(html):
                 trackers.append("google-analytics")
             if "href" in node.attributes:
                 url = node.attributes["href"]
-                domain = get_domain_from_cc(url)
+                domain = get_domain(url)
+                # print("url", url)
                 if domain:
                     if tracker_type == "all":
                         trackers.append(domain)
@@ -260,13 +273,31 @@ def get_text_selectolax(html):
                         trackers.append(domain)
             if "src" in node.attributes:
                 url = node.attributes["src"]
-                domain = get_domain_from_cc(url)
-
+                domain = get_domain(url)
+                # print("url", url)
                 if domain:
                     if tracker_type == "all":
                         trackers.append(domain)
                     elif domain in tracker_list:
                         trackers.append(domain)
+
+            if "onclick" in node.attributes:
+                url = node.attributes["onclick"]
+                # if is_string_an_url(url):
+                if "window.open" in url:
+                    url = url.replace("window.open(", "")
+                    url = url.replace("+", "")
+                    url = url.replace(")", "")
+                    url = url.replace("'", "")
+                    url = url.replace(" ", "")
+                    url = url.split(";")[0]
+                    # print("url", url)
+                    domain = domain = get_domain(url)
+                    if domain:
+                        if tracker_type == "all":
+                            trackers.append(domain)
+                        elif domain in tracker_list:
+                            trackers.append(domain)
 
             if (
                 "type" in node.attributes
@@ -275,7 +306,8 @@ def get_text_selectolax(html):
 
                 result = re.findall(regex, text)
                 for url in result:
-                    domain = get_domain_from_cc(url)
+                    # print("url", url)
+                    domain = get_domain(url)
 
                     if domain:
                         if tracker_type == "all":
@@ -326,7 +358,7 @@ def process_warc_from_archive(filename, offset=None, length=None, parser=None):
 
 def process_warc_froms3(file_name, offset=None, length=None, parser=None):
 
-    s3 = boto3.client("s3", config=Config(signature_version=UNSIGNED))
+    s3 = boto3.client("s3")
     # Count the range
     offset_end = offset + length - 1
     byte_range = "bytes={offset}-{end}".format(offset=offset, end=offset_end)

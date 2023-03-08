@@ -32,21 +32,23 @@ def collect_trackers_from_cc(row):
     return trackers
 
 
-fout = open(f"dataset_cc/cc_dataset_output.txt", "a", encoding="utf-8")
+fout = open(f"Journal/trackers_allurls_left_3.txt", "w", encoding="utf-8")
 
 
 def collect_trackers_from_map_cc(row):
     try:
         url_host_name = row[0]
-        warc_filename = row[1]
-        year = row[2]
+        warc_filename = row[2]
 
         offset = row[3]
         length = row[4]
         url, trackers = process_warc_froms3(
-            warc_filename, offset=offset, length=length, parser=get_text_selectolax
+            warc_filename,
+            offset=offset,
+            length=length,
+            parser=get_text_selectolax,
         )
-        line = url_host_name + "\t" + str(year) + "\t" + trackers + "\n"
+        line = url_host_name + "\t" + "\t" + trackers + "\n"
         # print(line)
         fout.write(line)
         fout.flush()
@@ -55,15 +57,15 @@ def collect_trackers_from_map_cc(row):
         print(e)
 
 
-files = glob.glob("dataset_cc/parsed_cc_results_*.txt")
-for e, f in enumerate(files):
+from functools import partial
 
-    df = pd.read_csv(
-        f,
-        names=["url", "cc_path", "year", "offset", "length"],
-    )
+collect_trackers_from_map_cc_parallel = partial(collect_trackers_from_map_cc, y=10)
 
-    file_name = f.split("_")[-1]
+df_all = pd.read_csv("Journal/all_urls_2022.csv", chunksize=1000000, skiprows=28987887)
+
+for e, df in enumerate(df_all):
+
+    print(f"chunk {e} begin ")
 
     v = df.values
 
@@ -79,6 +81,7 @@ for e, f in enumerate(files):
         pass
     pool.close()
     pool.join()
+
 
 # fout = open(f"dataset_cc/cc_dataset_england.txt", "w", encoding="utf-8")
 # df = pd.read_csv("resource/england.csv")[
