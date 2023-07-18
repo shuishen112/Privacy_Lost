@@ -1,11 +1,16 @@
 import sys
 from os import path
 
+
+from functools import partial
+
 sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
-import pandas as pd
-from warc_module.warc_utils import process_warc_froms3, get_text_selectolax
-from tqdm import tqdm
 import glob
+
+import pandas as pd
+from tqdm import tqdm
+
+from warc_module.warc_utils import get_text_selectolax, process_warc_froms3
 
 tqdm.pandas()
 import multiprocessing as mp
@@ -32,7 +37,7 @@ def collect_trackers_from_cc(row):
     return trackers
 
 
-fout = open(f"Journal/trackers_allurls_left_3.txt", "w", encoding="utf-8")
+fout = open(f"Journal/trackers_allurls_2018_left.txt", "a", encoding="utf-8")
 
 
 def collect_trackers_from_map_cc(row):
@@ -57,30 +62,29 @@ def collect_trackers_from_map_cc(row):
         print(e)
 
 
-from functools import partial
-
 collect_trackers_from_map_cc_parallel = partial(collect_trackers_from_map_cc, y=10)
 
-df_all = pd.read_csv("Journal/all_urls_2022.csv", chunksize=1000000, skiprows=28987887)
+# df_all = pd.read_csv("Journal/all_urls_2018.csv", chunksize=1000000, skiprows=3992111)
+df = pd.read_csv("Journal/all_urls_2018.csv", skiprows=3992111)
 
-for e, df in enumerate(df_all):
+# for e, df in enumerate(df_all):
 
-    print(f"chunk {e} begin ")
+#     print(f"chunk {e} begin ")
 
-    v = df.values
+v = df.values
 
-    # for vv in v:
-    #     collect_trackers_from_map_cc(vv)
+# for vv in v:
+#     collect_trackers_from_map_cc(vv)
 
-    pool = mp.Pool(mp.cpu_count())
+pool = mp.Pool(24)
 
-    # pool.map(collect_trackers_from_map_cc, list(v))
-    for _ in tqdm(
-        pool.imap_unordered(collect_trackers_from_map_cc, list(v)), total=len(df)
-    ):
-        pass
-    pool.close()
-    pool.join()
+# pool.map(collect_trackers_from_map_cc, list(v))
+for _ in tqdm(
+    pool.imap_unordered(collect_trackers_from_map_cc, list(v)), total=len(df)
+):
+    pass
+pool.close()
+pool.join()
 
 
 # fout = open(f"dataset_cc/cc_dataset_england.txt", "w", encoding="utf-8")

@@ -208,13 +208,13 @@ def get_outer_link(html):
 
             if "href" in node.attributes:
                 url = node.attributes["href"]
-                domain = get_outer_link_from_ia(url)
+                domain = get_outer_link_from_cc(url)
                 if domain is not None:
                     outer_links.append(domain)
 
             if "src" in node.attributes:
                 url = node.attributes["src"]
-                domain = get_outer_link_from_ia(url)
+                domain = get_outer_link_from_cc(url)
                 if domain is not None:
                     outer_links.append(domain)
 
@@ -224,7 +224,7 @@ def get_outer_link(html):
             ):
                 result = re.findall(regex, text)
                 for url in result:
-                    domain = get_outer_link_from_ia(url)
+                    domain = get_outer_link_from_cc(url)
                     if domain is not None:
                         outer_links.append(domain)
 

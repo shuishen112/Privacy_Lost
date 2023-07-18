@@ -93,15 +93,20 @@ The privacy List project aims to study how regional differences in power and pol
 
 ### Built With
 
-* [![Next][Next.js]][Next-url]
+<!-- * [![Next][Next.js]][Next-url]
 * [![React][React.js]][React-url]
 * [![Vue][Vue.js]][Vue-url]
 * [![Angular][Angular.io]][Angular-url]
 * [![Svelte][Svelte.dev]][Svelte-url]
 * [![Laravel][Laravel.com]][Laravel-url]
 * [![Bootstrap][Bootstrap.com]][Bootstrap-url]
-* [![JQuery][JQuery.com]][JQuery-url]
+* [![JQuery][JQuery.com]][JQuery-url] -->
 
+- [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+
+- [![Imports: isort](https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat&labelColor=ef8336)](https://pycqa.github.io/isort/)
+- [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+- [![python:3.8](https://img.shields.io/badge/python-3.8-green)]()
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 
@@ -122,19 +127,11 @@ This is an example of how to list things you need to use the software and how to
 
 ### Installation
 
-1. Get a free API Key at [https://example.com](https://example.com)
-2. Clone the repo
+
    ```sh
-   git clone https://github.com/github_username/repo_name.git
+   git clone https://github.com/shuishen112/Privacy_Lost.git
    ```
-3. Install NPM packages
-   ```sh
-   npm install
-   ```
-4. Enter your API in `config.js`
-   ```js
-   const API_KEY = 'ENTER YOUR API';
-   ```
+
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 

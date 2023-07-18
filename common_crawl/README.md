@@ -35,3 +35,8 @@ Then the final dataset is just like this:
 https://web.archive.org/web/20120519095510/http://11makelaars.nl:80/,"addthis,google-analytics"
 
 ## Analyse
+
+Figure 1: notebook/track_evolution.ipynb
+
+Figure 2: notebook/Wilcoxon_Sign-Ranked.ipynb
+
