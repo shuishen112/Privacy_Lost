@@ -90,7 +90,6 @@ The privacy List project aims to study how regional differences in power and pol
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 
-
 ### Built With
 
 <!-- * [![Next][Next.js]][Next-url]
@@ -114,16 +113,6 @@ The privacy List project aims to study how regional differences in power and pol
 <!-- GETTING STARTED -->
 ## Getting Started
 
-This is an example of how you may give instructions on setting up your project locally.
-To get a local copy up and running follow these simple example steps.
-
-### Prerequisites
-
-This is an example of how to list things you need to use the software and how to install them.
-* npm
-  ```sh
-  npm install npm@latest -g
-  ```
 
 ### Installation
 
@@ -140,6 +129,10 @@ This is an example of how to list things you need to use the software and how to
 <!-- USAGE EXAMPLES -->
 ## Usage
 
+The project include the paper for ADMA2023:
+
+
+
 Use this space to show useful examples of how a project can be used. Additional screenshots, code examples and demos work well in this space. You may also link to more resources.
 
 _For more examples, please refer to the [Documentation](https://example.com)_
@@ -151,7 +144,9 @@ _For more examples, please refer to the [Documentation](https://example.com)_
 <!-- ROADMAP -->
 ## Roadmap
 
-- [ ] Feature 1
+
+
+- [ Paper] Feature 1
 - [ ] Feature 2
 - [ ] Feature 3
     - [ ] Nested Feature

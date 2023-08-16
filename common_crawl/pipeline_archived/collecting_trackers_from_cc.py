@@ -9,7 +9,7 @@ import glob
 
 import pandas as pd
 from tqdm import tqdm
-
+import argparse
 from warc_module.warc_utils import get_text_selectolax, process_warc_froms3
 
 tqdm.pandas()
@@ -18,6 +18,22 @@ import multiprocessing as mp
 print("Number of processors: ", mp.cpu_count())
 
 # pandarallel.initialize(progress_bar=True)
+
+argparser = argparse.ArgumentParser()
+argparser.add_argument(
+    "--year",
+    type=int,
+    default=2016,
+    help="year of the dataset",
+)
+argparser.add_argument(
+    "--skiprows",
+    type=int,
+    default=0,
+    help="skiprows of the dataset",
+)
+
+args = argparser.parse_args()
 
 
 def collect_trackers_from_cc(row):
@@ -37,7 +53,7 @@ def collect_trackers_from_cc(row):
     return trackers
 
 
-fout = open(f"Journal/trackers_allurls_2018_left.txt", "a", encoding="utf-8")
+fout = open(f"Journal/trackers_allurls_{args.year}.txt", "a", encoding="utf-8")
 
 
 def collect_trackers_from_map_cc(row):
@@ -65,7 +81,7 @@ def collect_trackers_from_map_cc(row):
 collect_trackers_from_map_cc_parallel = partial(collect_trackers_from_map_cc, y=10)
 
 # df_all = pd.read_csv("Journal/all_urls_2018.csv", chunksize=1000000, skiprows=3992111)
-df = pd.read_csv("Journal/all_urls_2018.csv", skiprows=3992111)
+df = pd.read_csv(f"Journal/all_urls_{args.year}.csv", skiprows=args.skiprows)
 
 # for e, df in enumerate(df_all):
 
@@ -76,7 +92,7 @@ v = df.values
 # for vv in v:
 #     collect_trackers_from_map_cc(vv)
 
-pool = mp.Pool(24)
+pool = mp.Pool(96)
 
 # pool.map(collect_trackers_from_map_cc, list(v))
 for _ in tqdm(
