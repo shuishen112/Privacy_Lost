@@ -2,35 +2,67 @@
 
 import logging
 from homepage2vec.model import WebsiteClassifier
-import operator
 from datetime import date
+import argparse
+from tqdm import tqdm
+import json
+
+parser = argparse.ArgumentParser()
+parser.add_argument(
+    "--start",
+    default=0,
+    help="start",
+)
+
+parser.add_argument(
+    "--end",
+    default=20000,
+    help="end",
+)
+
+parser.add_argument(
+    "--input_file",
+    default="websci/government_websites_reversed.csv",
+    help="input_file",
+)
+
+parser.add_argument(
+    "--output_file",
+    default="websci/government_websites_reversed_classification.jsonl",
+    help="output_file",
+)
+
+args = parser.parse_args()
+print(args)
+
 
 logging.getLogger().setLevel(logging.DEBUG)
 
 model = WebsiteClassifier()
 # Using readlines()
-file1 = open("eu_urls_1st_smaple_list.txt", "r")
+file1 = open(args.input_file, "r")
 Lines = file1.readlines()
 
 today = date.today()
 print("Starting date and time:", today)
 count = 0
 # Strips the newline character
-start = input("Enter the starting url index: ")
-end = input("Enter the ending url index: ")
-for line in Lines[int(start) : int(end)]:
-    count += 1
-    print("Line{}: {}".format(count, line.strip()))
-    try:
-        website = model.fetch_website(line.strip())
-
-        scores, embeddings = model.predict(website)
-        # print(max(scores, key=scores.get))
-        with open("RQx_URLs_Classification_Output.txt", "a") as f:
-            f.write(line.strip() + "\t" + max(scores, key=scores.get) + "\n")
-        # print("Classes probabilities:", scores)
-        # print("Embedding:", embeddings)
-    except:
-        pass
+with open(args.output_file, "w") as f:
+    for line in tqdm(Lines[int(args.start) : int(args.end)]):
+        try:
+            website = model.fetch_website(line.strip())
+            scores, embeddings = model.predict(website)
+            # print(max(scores, key=scores.get))
+            write_dict = {
+                "host_name": line.strip(),
+                "class": max(scores, key=scores.get),
+                "class_probabilities": scores,
+                "embedding": embeddings,
+            }
+            f.write(json.dumps(write_dict) + "\n")
+            f.flush()
+        except Exception as e:
+            print(e)
+            pass
 today = date.today()
 print("Ending date and time:", today)
