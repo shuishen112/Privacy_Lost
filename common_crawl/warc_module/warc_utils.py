@@ -3,9 +3,7 @@ Author: Zhan
 Date: 2021-03-12 14:59:58
 LastEditTime: 2022-03-27 21:39:54
 LastEditors: Please set LastEditors
-Description: warc utils. We can use warc feature
-FilePath: /undefined/Users/zhansu/Documents/phd/privacy_lost/second_week/warc_test.py
-"""
+Description: warc utils. We can use warc feature"""
 # coding: utf-8
 
 import re
@@ -19,6 +17,14 @@ import tldextract
 import logging
 import validators
 from validators import ValidationFailure
+
+# add config path
+import sys
+import os
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+
 from config import args
 import gzip
 from botocore.client import Config
@@ -26,7 +32,7 @@ from botocore import UNSIGNED
 
 logger = logging.getLogger("webtracking.warc_tracking")
 
-# 获得trackers
+# get trackers
 tracker_type = args["tracker_type"]
 print(tracker_type)
 thirdparties = pd.read_csv(
@@ -58,13 +64,10 @@ regex = "((?<=[^a-zA-Z0-9])(?:https?\:\/\/|[a-zA-Z0-9]{1,}\.{1}|\b)(?:\w{1,}\.{1
 tracker_list = thirdparties["domain"].to_list()
 tracker_list = list(map(lambda x: tldextract.extract(x).domain, tracker_list))
 
-# print(trackers)
-
 domain_url = {}
-# fout = open("tracker_url_edu.txt", "w")
 
 
-def get_domain_from_ia(url):
+def get_domain_from_ia(url, is_register_domain=False):
     """
     extract the domain from Internet Archive resource
 
@@ -82,21 +85,20 @@ def get_domain_from_ia(url):
         if "http" in path:
             url = "https://{}".format(path.split("//")[-1])
 
-        # domain = str(urlparse(url).netloc)
-        domain = tldextract.extract(str(urlparse(url).netloc)).domain
+        domain = str(urlparse(url).netloc)
+        if is_register_domain:
+            domain = tldextract.extract(str(urlparse(url).netloc)).domain
         # ignore the "archive"
-        if domain == "archive":
+        if domain == "archive.org":
             return None
-        # logger.info("url:{}-----domain:{}".format(url, domain))
         if domain not in domain_url:
             domain_url[domain] = url
-            # fout.write(domain + "\t" + url + "\n")
     else:
         domain = None
     return domain
 
 
-def get_domain_from_cc(url):
+def get_domain_from_cc(url, is_register_domain=False):
     """
     extract the domain from Common Crawl
 
@@ -110,20 +112,13 @@ def get_domain_from_cc(url):
         return None
     if is_string_an_url(url):
         domain = str(urlparse(url).netloc)
-        domain = tldextract.extract(str(urlparse(url).netloc)).domain
-        # logger.info("url:{}-----domain:{}".format(url, domain))
+        if is_register_domain:
+            domain = tldextract.extract(str(urlparse(url).netloc)).domain
         if domain not in domain_url:
             domain_url[domain] = url
-            # fout.write(domain + "\t" + url + "\n")
     else:
         domain = None
     return domain
-
-
-# def get_domain_suffix(url):
-#     domain = tldextract.extract(url).domain
-#     # suffix = tldextract.extract(url).suffix
-#     return domain
 
 
 def is_string_an_url(url_string: str) -> bool:
@@ -194,14 +189,12 @@ def get_outer_link(html):
         _type_: _description_
     """
     outer_links = []
-    # try:
     tree = HTMLParser(html)
     if tree.body is None:
         return outer_links
     for node in tree.tags("style"):
         node.decompose()
 
-    #         找到a
     try:
         for node in tree.css("a,link,script,iframe,img"):
             text = node.text()
@@ -244,7 +237,6 @@ def get_text_selectolax(html, source="cc"):
         _type_: _description_
     """
     trackers = []
-    # try:
     tree = HTMLParser(html)
     if tree.body is None:
         return trackers
@@ -256,16 +248,14 @@ def get_text_selectolax(html, source="cc"):
     elif source == "ia":
         get_domain = get_domain_from_ia
 
-    #         找到a
     try:
         for node in tree.css("a,link,script,iframe,img"):
             text = node.text()
             if "google-analytics" in text:
-                trackers.append("google-analytics")
+                trackers.append("google-analytics.com")
             if "href" in node.attributes:
                 url = node.attributes["href"]
                 domain = get_domain(url)
-                # print("url", url)
                 if domain:
                     if tracker_type == "all":
                         trackers.append(domain)
@@ -274,7 +264,6 @@ def get_text_selectolax(html, source="cc"):
             if "src" in node.attributes:
                 url = node.attributes["src"]
                 domain = get_domain(url)
-                # print("url", url)
                 if domain:
                     if tracker_type == "all":
                         trackers.append(domain)
@@ -283,7 +272,6 @@ def get_text_selectolax(html, source="cc"):
 
             if "onclick" in node.attributes:
                 url = node.attributes["onclick"]
-                # if is_string_an_url(url):
                 if "window.open" in url:
                     url = url.replace("window.open(", "")
                     url = url.replace("+", "")
@@ -291,7 +279,6 @@ def get_text_selectolax(html, source="cc"):
                     url = url.replace("'", "")
                     url = url.replace(" ", "")
                     url = url.split(";")[0]
-                    # print("url", url)
                     domain = domain = get_domain(url)
                     if domain:
                         if tracker_type == "all":
@@ -303,10 +290,8 @@ def get_text_selectolax(html, source="cc"):
                 "type" in node.attributes
                 and node.attributes["type"] == "text/javascript"
             ):
-
                 result = re.findall(regex, text)
                 for url in result:
-                    # print("url", url)
                     domain = get_domain(url)
 
                     if domain:
@@ -317,11 +302,6 @@ def get_text_selectolax(html, source="cc"):
     except Exception as e:
         print(e)
     return trackers
-
-    # except Exception as e:
-    #     print(e)
-    # finally:
-    #     return trackers
 
 
 def read_doc(record, parser=get_text_selectolax):
@@ -339,27 +319,20 @@ def read_doc(record, parser=get_text_selectolax):
     return url, text
 
 
-# 从s3中抽取网页trackers
-
-
 def process_warc_from_archive(filename, offset=None, length=None, parser=None):
     with open(filename, "rb") as stream:
         for record in ArchiveIterator(stream):
             url = record.rec_headers.get_header("WARC-Target-URI")
             text = record.content_stream().read()
-            trackers = parser(text)
-            # print(trackers)
+            trackers = parser(text, source="ia")
             trackers = list(set(trackers))
             if "archive" in trackers:
                 trackers.remove("archive")
-            # print(trackers)
             return (url, ",".join(trackers))
 
 
 def process_warc_froms3(file_name, offset=None, length=None, parser=None):
-
     s3 = boto3.client("s3")
-    # Count the range
     offset_end = offset + length - 1
     byte_range = "bytes={offset}-{end}".format(offset=offset, end=offset_end)
     resp = s3.get_object(Bucket="commoncrawl", Key=file_name, Range=byte_range)["Body"]
@@ -369,12 +342,10 @@ def process_warc_froms3(file_name, offset=None, length=None, parser=None):
         text = record.content_stream().read()
         trackers = parser(text)
         trackers = list(set(trackers))
-        # print(url, set(trackers))
         return (url, ",".join(trackers))
 
 
 def download_warc_froms3(filename, offset, length):
-
     # Boto3 anonymour login to common crawl
     try:
         s3 = boto3.client("s3")
@@ -389,46 +360,9 @@ def download_warc_froms3(filename, offset, length):
         text = data.decode("latin-1")
         return text
 
-        # for record in ArchiveIterator(gzipped_text):
-        #     url = record.rec_headers.get_header("WARC-Target-URI")
-        #     text = record.content_stream().read()
-        #     return text
     except Exception as e:
         print(e)
     return None
-
-
-# process_warc_from_archive("example_from_s3.warc", parser=get_text_selectolax)
-
-# import re
-
-# with open('CC-MAIN-20210513173321-20210513203321-00163.warc',encoding='utf-8',errors='ignore') as fin:
-#     for line in fin:
-
-#         try:
-#             result = re.findall('<a[^>]*href="([^>]*)">',line,re.I)
-#             print(result)
-#         except Exception as e:
-#             print(e)
-
-# process_warc('CC-MAIN-20210513173321-20210513203321-00163.warc',get_text_selectolax,100000)
-
-##################### 把s3文件下载下来分析 ###############
-
-
-# filename = "crawl-data/CC-MAIN-2015-35/segments/1440645167592.45/warc/CC-MAIN-20150827031247-00093-ip-10-171-96-226.ec2.internal.warc.gz"
-# offset = 631275067
-# length = 4394
-
-
-########### 把s3 文件下载下来放到本地
-
-import boto3
-
-from botocore import UNSIGNED
-from botocore.client import Config
-from warcio.archiveiterator import ArchiveIterator
-import gzip
 
 
 def collect_from_s3(filename, offset, length):
@@ -444,8 +378,30 @@ def collect_from_s3(filename, offset, length):
     data = gzip.decompress(gzipped_text.read())
     text = data.decode("utf-8")
     print(text)
-    # with open("unit_test/{}.warc".format(tldextract.extract(url).domain), "w") as fout:
-    #     fout.write(text)
 
 
-# collect_from_s3(filename, offset, length)
+if __name__ == "__main__":
+    # filename = "crawl-data/CC-MAIN-2015-35/segments/1440645167592.45/warc/CC-MAIN-20150827031247-00093-ip-10-171-96-226.ec2.internal.warc.gz"
+    # offset = 631275067
+    # length = 4394
+    # collect_from_s3(filename, offset, length)
+
+    trackers = process_warc_from_archive(
+        "common_crawl_bbc_sample.warc", parser=get_text_selectolax
+    )
+    print(trackers)
+    # import re
+
+    # with open(
+    #     "CC-MAIN-20210513173321-20210513203321-00163.warc",
+    #     encoding="utf-8",
+    #     errors="ignore",
+    # ) as fin:
+    #     for line in fin:
+    #         try:
+    #             result = re.findall('<a[^>]*href="([^>]*)">', line, re.I)
+    #             print(result)
+    #         except Exception as e:
+    #             print(e)
+
+# process_warc('CC-MAIN-20210513173321-20210513203321-00163.warc',get_text_selectolax,100000)

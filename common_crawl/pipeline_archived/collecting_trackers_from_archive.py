@@ -185,20 +185,31 @@ def get_dataframe(year):
     return df
 
 
-df = get_dataframe(args_.year)
-
-fout = open(args_.output_path, "w")
-for e, item in df.iterrows():
-    domain = item["domain"]
-    history_url = item["historical_url"]
-    fout.write(domain + "\t")
-    logger.info(f"collecting number:{e}:{domain}")
+# only test one historical snapshot
+def test_archive():
+    history_url = "https://web.archive.org/web/20151127040830/http://www.region-orlickehory.cz:80/"
     trackers = extract_trackers_from_internet_archive(history_url, get_text_selectolax)
-    if trackers is not None:
-        fout.write(",".join(trackers) + "\n")
-    else:
-        fout.write("\n")
-    fout.flush()
+    print(f"len:{len(trackers)}", trackers)
+
+
+if __name__ == "__main__":
+    test_archive()
+
+
+# df = get_dataframe(args_.year)
+
+# fout = open(args_.output_path, "w")
+# for e, item in df.iterrows():
+#     domain = item["domain"]
+#     history_url = item["historical_url"]
+#     fout.write(domain + "\t")
+#     logger.info(f"collecting number:{e}:{domain}")
+#     trackers = extract_trackers_from_internet_archive(history_url, get_text_selectolax)
+#     if trackers is not None:
+#         fout.write(",".join(trackers) + "\n")
+#     else:
+#         fout.write("\n")
+#     fout.flush()
 
 #################################### colllecting outlinks from Internet Archive ###############################
 
@@ -227,9 +238,3 @@ for e, item in df.iterrows():
 # logger.info(time.time() - t)
 
 ########################### only test one historical snapshot ###########################
-
-# history_url = (
-#     "https://web.archive.org/web/20151127040830/http://www.region-orlickehory.cz:80/"
-# )
-# trackers = extract_trackers_from_internet_archive(history_url, get_text_selectolax)
-# print(f"len:{len(trackers)}", trackers)

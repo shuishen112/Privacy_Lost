@@ -13,6 +13,7 @@ import pandas as pd
 from tqdm import tqdm
 import os
 from warcio.archiveiterator import ArchiveIterator
+from warc_module.warc_utils import get_domain_from_ia
 
 tqdm.pandas()
 
@@ -82,9 +83,12 @@ def collect_dataset(row, year):
 
 def extract_trackers_from_internet_archive(url, parser):
     try:
+        url_host_name = get_domain_from_ia(url)
         resp = requests.get(url, headers={"Accept-Encoding": "identity"}, stream=True)
         text = resp.text
         trackers = parser(text, source="ia")
+        # filter the trackers that are not in the same url_host_name
+        trackers = [tracker for tracker in trackers if tracker not in url_host_name]
         trackers = list(set(trackers))
         return trackers
 
