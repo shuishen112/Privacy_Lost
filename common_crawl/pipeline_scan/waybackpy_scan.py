@@ -110,10 +110,10 @@ def get_specific_time_url_df(row, url_year):
 
     user_agent = "Mozilla/5.0 (Windows NT 5.1; rv:40.0) Gecko/20100101 Firefox/40.0"
     try:
-
         cdx_api = WaybackMachineCDXServerAPI(
             url, user_agent, start_timestamp=url_year, end_timestamp=url_year
         )
+        time.sleep(1)
         near = cdx_api.near(year=url_year)
         archive_url = near.archive_url
     except Exception as e:
@@ -141,7 +141,6 @@ def get_specific_time_url(url, year):
 
 
 def judge_whether_it_can_occur_in_each_year(url, begin_year, end_year):
-
     user_agent = "Mozilla/5.0 (Windows NT 5.1; rv:40.0) Gecko/20100101 Firefox/40.0"
 
     for year in range(begin_year, end_year):
@@ -171,12 +170,12 @@ for year in range(2014, 2022):
         get_specific_time_url_df, axis=1, url_year=year
     )
 
-    df[[collect_key, "history_url"]].to_csv(
-        "RQX/10000sample_analysis/IA/{}_historical_year_{}.csv".format(
-            collect_key, str(year)
-        ),
-        index=None,
-    )
+    # df[[collect_key, "history_url"]].to_csv(
+    #     "RQX/10000sample_analysis/IA/{}_historical_year_{}.csv".format(
+    #         collect_key, str(year)
+    #     ),
+    #     index=None,
+    # )
 # print(get_specific_time_url("www.vvvorden.nl", 2015))
 
 
