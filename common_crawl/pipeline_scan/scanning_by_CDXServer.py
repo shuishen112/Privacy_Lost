@@ -1,14 +1,11 @@
-from waybackpy import WaybackMachineCDXServerAPI
 from urllib.request import urlopen
 import json, requests
 import time
 import pandas as pd
 import multiprocessing as mp
 from tqdm import tqdm
-import cdx_toolkit
 import argparse
 import os
-import random
 from torpy.http.requests import TorRequests
 
 parser = argparse.ArgumentParser()
