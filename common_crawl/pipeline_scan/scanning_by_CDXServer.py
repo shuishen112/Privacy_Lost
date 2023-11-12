@@ -153,7 +153,7 @@ if __name__ == "__main__":
         df = pd.read_json(args.input_data_path, lines=True)
     list_host_name = df["host_name"].to_list()
     if not os.path.exists(args.output_path):
-        os.mkdir(args.output_path)
+        os.makedirs(args.output_path, exist_ok=True)
     for year in range(args.year_begin, args.year_end):
         fout = open(f"{args.output_path}domain_historical_year_{str(year)}.csv", "w")
         print(year)
