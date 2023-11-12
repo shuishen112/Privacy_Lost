@@ -64,10 +64,8 @@ def get_specific_time_url(url, year_from, year_to):
         + "&collapse=timestamp:4&showSkipCount=true&lastSkipTimestamp=true&limit=1"
     )
     try:
-        # random select a agent
-
-        f = requests.get(link)
-        text = f.text
+        f = urlopen(link)
+        text = f.read()
         list_archive = json.loads(text)
         if len(list_archive) == 2:
             timestamp = list_archive[1][0]
