@@ -51,7 +51,7 @@ args = parser.parse_args()
 run = wandb.init(
     project="websci",
     group="IA",
-    job_type="collect_historical_url",
+    job_type=f"collect_historical_url{args.year}",
     config={
         "year": args.year,
     },
@@ -91,7 +91,7 @@ def get_specific_time_url(url, year_from, year_to):
             )
             time.sleep(300)
             print("Was a nice sleep, now let me continue...")
-            return get_specific_time_url(url, year_from, year_to)
+            return "REFUSED"
         else:
             return "DEAD"
 
@@ -172,7 +172,11 @@ def collect_historical_url(year, list_host_name):
 
     fout = open(f"{args.output_path}domain_historical_year_{str(year)}.csv", "a+")
     print(year)
+    i = 0
     for item in tqdm(list_host_name):
+        # logging the process using wandb
+        i += 1
+        wandb.log({"progress": i, "total": len(list_host_name)})
         time.sleep(1)
         # we should check if the url has been archived in the year
         historical_url = get_specific_time_url(item, str(year), str(year))
