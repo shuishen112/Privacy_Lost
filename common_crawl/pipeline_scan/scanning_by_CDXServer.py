@@ -92,6 +92,8 @@ def get_specific_time_url(url, year_from, year_to):
             time.sleep(300)
             print("Was a nice sleep, now let me continue...")
             return get_specific_time_url(url, year_from, year_to)
+        else:
+            return "DEAD"
 
     return None
 
