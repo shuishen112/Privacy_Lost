@@ -6,7 +6,10 @@ import multiprocessing as mp
 from tqdm import tqdm
 import argparse
 import os
-from torpy.http.requests import TorRequests
+import wandb
+
+wandb.login()
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
@@ -45,19 +48,14 @@ parser.add_argument(
 )
 args = parser.parse_args()
 
-
-AGENT_LIST = [
-    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/44.0.2403.157 Safari/537.36",
-    "Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:24.0) Gecko/20100101 Firefox/24.0",
-    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/91.0.4472.114 Safari/537.36",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_5) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.1.1 Safari/605.1.15",
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:77.0) Gecko/20100101 Firefox/77.0",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.97 Safari/537.36",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:77.0) Gecko/20100101 Firefox/77.0",
-    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/78.0.3904.70 Safari/537.36",
-    "Mozilla/5.0 (X11; Linux i586; rv:31.0) Gecko/20100101 Firefox/31.0",
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.97 Safari/537.36",
-]
+run = wandb.init(
+    project="websci",
+    group="IA",
+    job_type="collect_historical_url",
+    config={
+        "year": args.year,
+    },
+)
 
 
 def get_specific_time_url(url, year_from, year_to):
@@ -80,7 +78,20 @@ def get_specific_time_url(url, year_from, year_to):
             historical_url = f"https://web.archive.org/web/{timestamp}/{origin}"
             return historical_url
     except Exception as e:
-        print(e)
+        print(url, e)
+        # if the exception is connection refused
+        # send a message to my email
+        if "429" or "111" in str(e):
+            print("Connection refused by the server..")
+            print("Let me sleep for 5 min ")
+            print("ZZzzzz...")
+            wandb.alert(
+                title="Connection refused by the server..",
+                text="Connection refused by the server.. Let me sleep for 5 min ZZzzzz...",
+            )
+            time.sleep(300)
+            print("Was a nice sleep, now let me continue...")
+            return get_specific_time_url(url, year_from, year_to)
 
     return None
 
@@ -134,15 +145,6 @@ def multi_threading():
     pool.join()
 
 
-def send_request(url):
-    with TorRequests() as tor_requests:
-        with tor_requests.get_session() as sess:
-            # print the IP address of the proxy
-            print(sess.get("http://httpbin.org/ip").json())
-            html_content = sess.get(url, timeout=10).text
-            return html_content
-
-
 def unit_test():
     url = "ku.dk"
     year_from = "2012"
@@ -152,10 +154,25 @@ def unit_test():
 
 
 def collect_historical_url(year, list_host_name):
-    fout = open(f"{args.output_path}domain_historical_year_{str(year)}.csv", "w")
+    # first we judge if the fout exists
+    if os.path.exists(f"{args.output_path}domain_historical_year_{str(year)}.csv"):
+        print("file exists")
+        #   read the file
+        df = pd.read_csv(
+            f"{args.output_path}domain_historical_year_{str(year)}.csv",
+            sep="\t",
+            names=["hostname", "historical_url"],
+        )
+        # filter all the NAN
+        df = df[df["historical_url"] == "NAN"]
+        # get the list of the hostnames
+        list_host_name = df["hostname"].unique()
+
+    fout = open(f"{args.output_path}domain_historical_year_{str(year)}.csv", "a+")
     print(year)
     for item in tqdm(list_host_name):
-        time.sleep(1)
+        # time.sleep(1)
+        # we should check if the url has been archived in the year
         historical_url = get_specific_time_url(item, str(year), str(year))
         if historical_url:
             fout.write(item + "\t" + historical_url + "\n")
@@ -195,3 +212,5 @@ if __name__ == "__main__":
         collect_historical_url_from_several_years(
             args.year_begin, args.year_end, list_host_name
         )
+
+    run.finish()
