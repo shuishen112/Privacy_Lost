@@ -36,6 +36,13 @@ parser.add_argument(
     default=2024,
     help="year",
 )
+
+parser.add_argument(
+    "--year",
+    type=int,
+    default=None,
+    help="year",
+)
 args = parser.parse_args()
 
 
@@ -144,23 +151,47 @@ def unit_test():
     # get_timespan("archive.org")
 
 
-if __name__ == "__main__":
-    if args.input_data_path.endswith("csv"):
-        df = pd.read_csv(args.input_data_path, sep="\t", names=["host_name"])
-    elif args.input_data_path.endswith("jsonl"):
-        df = pd.read_json(args.input_data_path, lines=True)
-    list_host_name = df["host_name"].to_list()
-    if not os.path.exists(args.output_path):
-        os.makedirs(args.output_path, exist_ok=True)
-    for year in range(args.year_begin, args.year_end):
+def collect_historical_url(year, list_host_name):
+    fout = open(f"{args.output_path}domain_historical_year_{str(year)}.csv", "w")
+    print(year)
+    for item in tqdm(list_host_name):
+        time.sleep(1)
+        historical_url = get_specific_time_url(item, str(year), str(year))
+        if historical_url:
+            fout.write(item + "\t" + historical_url + "\n")
+        else:
+            fout.write(item + "\t" + "NAN" + "\n")
+        fout.flush()
+    fout.close()
+
+
+def collect_historical_url_from_several_years(year_begin, year_end, list_host_name):
+    for year in range(year_begin, year_end):
         fout = open(f"{args.output_path}domain_historical_year_{str(year)}.csv", "w")
         print(year)
         for item in tqdm(list_host_name):
             time.sleep(1)
-            historical_url = get_specific_time_url(item, str(year), str(year))
+            historical_url = get_timescan_fromCC(item)
             if historical_url:
                 fout.write(item + "\t" + historical_url + "\n")
             else:
                 fout.write(item + "\t" + "NAN" + "\n")
             fout.flush()
         fout.close()
+
+
+if __name__ == "__main__":
+    if args.input_data_path.endswith("csv"):
+        # read the dataset sample between x to y rows
+        df = pd.read_csv(args.input_data_path)
+    elif args.input_data_path.endswith("jsonl"):
+        df = pd.read_json(args.input_data_path, lines=True)
+    list_host_name = df["hostnames"].to_list()
+    if not os.path.exists(args.output_path):
+        os.makedirs(args.output_path, exist_ok=True)
+    if args.year:
+        collect_historical_url(args.year, list_host_name)
+    else:
+        collect_historical_url_from_several_years(
+            args.year_begin, args.year_end, list_host_name
+        )
