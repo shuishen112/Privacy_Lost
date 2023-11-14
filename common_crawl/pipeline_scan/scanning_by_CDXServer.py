@@ -171,7 +171,7 @@ def collect_historical_url(year, list_host_name):
     fout = open(f"{args.output_path}domain_historical_year_{str(year)}.csv", "a+")
     print(year)
     for item in tqdm(list_host_name):
-        # time.sleep(1)
+        time.sleep(1)
         # we should check if the url has been archived in the year
         historical_url = get_specific_time_url(item, str(year), str(year))
         if historical_url:
