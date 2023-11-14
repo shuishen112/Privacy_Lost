@@ -77,11 +77,13 @@ def get_specific_time_url(url, year_from, year_to):
             origin = list_archive[1][1]
             historical_url = f"https://web.archive.org/web/{timestamp}/{origin}"
             return historical_url
+        else:
+            return None
     except Exception as e:
         print(url, e)
         # if the exception is connection refused
         # send a message to my email
-        if "429" or "111" in str(e):
+        if ("429" in str(e)) or ("111" in str(e)):
             print("Connection refused by the server..")
             print("Let me sleep for 5 min ")
             print("ZZzzzz...")
@@ -94,8 +96,6 @@ def get_specific_time_url(url, year_from, year_to):
             return "REFUSED"
         else:
             return "DEAD"
-
-    return None
 
 
 def get_timespan(domain):
