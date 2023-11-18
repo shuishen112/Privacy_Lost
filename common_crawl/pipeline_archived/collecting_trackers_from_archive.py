@@ -43,7 +43,7 @@ args_ = parser.parse_args()
 
 ###### add log ######
 logging.basicConfig(
-    filename="logs/all_tracker.log",
+    filename=f"all_tracker_{args_.year}.log",
     level=logging.WARNING,
     format="%(asctime)s:%(levelname)s:%(name)s:%(message)s",
 )
