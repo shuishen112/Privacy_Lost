@@ -93,7 +93,7 @@ def extract_trackers_from_internet_archive(url, parser):
         return trackers
 
     except Exception as e:
-        print(e)
+        print("exception is in extract_trackers_from_internet_archive", e)
 
 
 def download_dataset_from_url(url: str):
