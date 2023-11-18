@@ -14,7 +14,7 @@ args = parser.parse_args()
 
 def get_dataset(year):
     df = pd.read_csv(
-        f"domain_historical_year_{year}.csv",
+        f"../IA/GOV/domain_historical_year_{year}.csv",
         sep="\t",
         names=["hostname", "historical_url"],
     )
