@@ -7,6 +7,7 @@ import sys
 from os import path
 import logging
 import os
+import wandb
 
 sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
 from config import args
@@ -193,9 +194,17 @@ def test_archive():
 
 if __name__ == "__main__":
     df = get_dataframe(args_.year)
-
+    run = wandb.init(
+        project="websci",
+        group="IA",
+        job_type=f"collect_historical_trackers{args_.year}",
+        config={
+            "year": args_.year,
+        },
+    )
     fout = open(args_.output_path + f"/archived_websites_{args_.year}", "w")
     for e, item in df.iterrows():
+        wandb.log({"progress": e, "total": len(df)})
         hostname = item["hostname"]
         history_url = item["historical_url"]
         print(hostname, history_url)
@@ -212,6 +221,7 @@ if __name__ == "__main__":
         else:
             fout.write(hostname + "\t" + "NO_TRACKERS" + "\n")
         fout.flush()
+    run.finish()
 
 #################################### colllecting outlinks from Internet Archive ###############################
 
