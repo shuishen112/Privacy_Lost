@@ -39,6 +39,13 @@ parser.add_argument(
     help="year",
 )
 
+parser.add_argument(
+    "--skiprows",
+    type=int,
+    default=0,
+    help=0,
+)
+
 args_ = parser.parse_args()
 
 
@@ -181,6 +188,7 @@ def get_dataframe(year):
     df = pd.read_csv(
         f"websci/scanning_websites/government_websites_page_rank_{year}_top_500_historical_url.csv",
         sep=",",
+        skiprows=args_.skiprows,
     )
     return df
 
@@ -216,7 +224,7 @@ if __name__ == "__main__":
         trackers = extract_trackers_from_internet_archive(
             history_url, get_text_selectolax
         )
-        if trackers is not None:
+        if trackers is not None and trackers != "REFUSED":
             fout.write(hostname + "\t" + ",".join(trackers) + "\n")
         else:
             fout.write(hostname + "\t" + "NO_TRACKERS" + "\n")
