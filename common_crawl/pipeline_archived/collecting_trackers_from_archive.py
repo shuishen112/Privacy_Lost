@@ -7,6 +7,7 @@ import sys
 from os import path
 import logging
 import os
+import wandb
 
 sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
 from config import args
@@ -27,7 +28,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument(
     "--output_path",
     type=str,
-    default="websci/IA/historical_trackers_year_2014.csv",
+    default="websci/IA/GOV/",
     help="output path",
 )
 
@@ -38,12 +39,19 @@ parser.add_argument(
     help="year",
 )
 
+parser.add_argument(
+    "--skiprows",
+    type=int,
+    default=0,
+    help=0,
+)
+
 args_ = parser.parse_args()
 
 
 ###### add log ######
 logging.basicConfig(
-    filename="logs/all_tracker.log",
+    filename=f"all_tracker_{args_.year}.log",
     level=logging.WARNING,
     format="%(asctime)s:%(levelname)s:%(name)s:%(message)s",
 )
@@ -178,10 +186,10 @@ def collect_trackers(type, year):
 
 def get_dataframe(year):
     df = pd.read_csv(
-        f"websci/IA/domain_historical_year_{year}.csv",
-        sep="\t",
-        names=["domain", "historical_url"],
-    ).dropna()
+        f"websci/scanning_websites/government_websites_page_rank_{year}_top_500_historical_url.csv",
+        sep=",",
+        skiprows=args_.skiprows,
+    )
     return df
 
 
@@ -193,23 +201,35 @@ def test_archive():
 
 
 if __name__ == "__main__":
-    test_archive()
-
-
-# df = get_dataframe(args_.year)
-
-# fout = open(args_.output_path, "w")
-# for e, item in df.iterrows():
-#     domain = item["domain"]
-#     history_url = item["historical_url"]
-#     fout.write(domain + "\t")
-#     logger.info(f"collecting number:{e}:{domain}")
-#     trackers = extract_trackers_from_internet_archive(history_url, get_text_selectolax)
-#     if trackers is not None:
-#         fout.write(",".join(trackers) + "\n")
-#     else:
-#         fout.write("\n")
-#     fout.flush()
+    df = get_dataframe(args_.year)
+    run = wandb.init(
+        project="websci",
+        group="IA",
+        job_type=f"collect_historical_trackers{args_.year}",
+        config={
+            "year": args_.year,
+        },
+    )
+    fout = open(args_.output_path + f"/archived_websites_{args_.year}", "w")
+    for e, item in df.iterrows():
+        wandb.log({"progress": e, "total": len(df)})
+        hostname = item["hostname"]
+        history_url = item["historical_url"]
+        print(hostname, history_url)
+        if isinstance(history_url, float):
+            fout.write(hostname + "\t" + "EMPTY_URL" + "\n")
+            continue
+        time.sleep(1)
+        logger.info(f"collecting number:{e}:{hostname}")
+        trackers = extract_trackers_from_internet_archive(
+            history_url, get_text_selectolax
+        )
+        if trackers is not None and trackers != "REFUSED":
+            fout.write(hostname + "\t" + ",".join(trackers) + "\n")
+        else:
+            fout.write(hostname + "\t" + "NO_TRACKERS" + "\n")
+        fout.flush()
+    run.finish()
 
 #################################### colllecting outlinks from Internet Archive ###############################
 

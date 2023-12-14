@@ -12,8 +12,9 @@ import requests
 import pandas as pd
 from tqdm import tqdm
 import os
-from warcio.archiveiterator import ArchiveIterator
+import wandb
 from warc_module.warc_utils import get_domain_from_ia
+import time
 
 tqdm.pandas()
 
@@ -93,7 +94,24 @@ def extract_trackers_from_internet_archive(url, parser):
         return trackers
 
     except Exception as e:
-        print(e)
+        # if connection error, sleep 5min seconds and try again
+
+        print(url, e)
+        # if the exception is connection refused
+        # send a message to my email
+        if ("429" in str(e)) or ("111" in str(e)):
+            print("Connection refused by the server..")
+            print("Let me sleep for 5 min ")
+            print("ZZzzzz...")
+            wandb.alert(
+                title="Connection refused by the server..",
+                text="Connection refused by the server.. Let me sleep for 5 min ZZzzzz...",
+            )
+            time.sleep(300)
+            print("Was a nice sleep, now let me continue...")
+            return "REFUSED"
+        else:
+            return "DEAD"
 
 
 def download_dataset_from_url(url: str):

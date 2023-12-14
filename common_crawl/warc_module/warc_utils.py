@@ -89,7 +89,7 @@ def get_domain_from_ia(url, is_register_domain=False):
         if is_register_domain:
             domain = tldextract.extract(str(urlparse(url).netloc)).domain
         # ignore the "archive"
-        if domain == "archive.org":
+        if domain == "www.archive.org":
             return None
         if domain not in domain_url:
             domain_url[domain] = url
