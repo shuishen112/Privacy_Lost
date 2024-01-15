@@ -1,16 +1,11 @@
 import sys
-from os import path
-
-
 from functools import partial
-
-sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
-import glob
-
+import json
 import pandas as pd
 from tqdm import tqdm
 import argparse
 from warc_module.warc_utils import get_text_selectolax, process_warc_froms3
+import time
 
 tqdm.pandas()
 import multiprocessing as mp
@@ -32,6 +27,44 @@ argparser.add_argument(
     default=0,
     help="skiprows of the dataset",
 )
+argparser.add_argument(
+    "--input_path",
+    type=str,
+    default="resource/england.csv",
+    help="input path of the dataset",
+)
+argparser.add_argument(
+    "--output_path",
+    type=str,
+    default="test.txt",
+    help="output path of the dataset",
+)
+
+argparser.add_argument(
+    "--num_process",
+    type=int,
+    default=1,
+    help="number of processes",
+)
+argparser.add_argument(
+    "--multi_process",
+    type=bool,
+    default=False,
+    help="multi process collecting",
+)
+argparser.add_argument(
+    "--unit_test",
+    type=bool,
+    default=False,
+    help="unit test",
+)
+argparser.add_argument(
+    "--single_process",
+    type=bool,
+    default=False,
+    help="single process collecting",
+)
+
 
 args = argparser.parse_args()
 
@@ -40,90 +73,99 @@ def collect_trackers_from_cc(row):
     warc_record_offset = row["offset"]
     warc_record_length = row["length"]
     warc_filename = row["cc_path"]
-    # year = row["year"]
-    # url_host_name = row['url_host_name']
     offset = warc_record_offset
     length = warc_record_length
     url, trackers = process_warc_froms3(
         warc_filename, offset=offset, length=length, parser=get_text_selectolax
     )
-    # line = offset + '\t' + warc_filename + '\t'
-    # print(line)
-    # fout.write(offset + '\t' + warc_filename + '\t')
+
     return trackers
 
 
-fout = open(f"Journal/trackers_allurls_{args.year}.txt", "a", encoding="utf-8")
+def unit_test(args):
+    url, trackers = process_warc_froms3(
+        "crawl-data/CC-MAIN-2015-14/segments/1427131298015.2/warc/CC-MAIN-20150323172138-00061-ip-10-168-14-71.ec2.internal.warc.gz",
+        offset=882944732,
+        length=10489,
+        parser=get_text_selectolax,
+    )
+    print(trackers)
 
 
-def collect_trackers_from_map_cc(row):
-    try:
-        url_host_name = row[0]
-        warc_filename = row[2]
+def single_process(args):
+    fout = open(f"{args.output_path}", "w", encoding="utf-8")
+    df = pd.read_csv("resource/england.csv")[
+        [
+            "url_host_name",
+            "warc_filename",
+            "year",
+            "warc_record_offset",
+            "warc_record_length",
+        ]
+    ]
 
-        offset = row[3]
-        length = row[4]
-        url, trackers = process_warc_froms3(
-            warc_filename,
-            offset=offset,
-            length=length,
-            parser=get_text_selectolax,
-        )
-        line = url_host_name + "\t" + "\t" + trackers + "\n"
-        # print(line)
-        fout.write(line)
-        fout.flush()
-        return trackers
-    except Exception as e:
-        print(e)
+    def collect_trackers_from_map_cc(row, fout):
+        try:
+            url_host_name = row["url_host_name"]
+            warc_filename = row["warc_filename"]
+            offset = row["warc_record_offset"]
+            length = row["warc_record_length"]
+            url, trackers = process_warc_froms3(
+                warc_filename,
+                offset=offset,
+                length=length,
+                parser=get_text_selectolax,
+            )
+            line = url_host_name + "\t" + trackers + "\n"
+            fout.write(line)
+            fout.flush()
+            return trackers
+        except Exception as e:
+            print(e)
 
-
-collect_trackers_from_map_cc_parallel = partial(collect_trackers_from_map_cc, y=10)
-
-# df_all = pd.read_csv("Journal/all_urls_2018.csv", chunksize=1000000, skiprows=3992111)
-df = pd.read_csv(f"Journal/all_urls_{args.year}.csv", skiprows=args.skiprows)
-
-# for e, df in enumerate(df_all):
-
-#     print(f"chunk {e} begin ")
-
-v = df.values
-
-# for vv in v:
-#     collect_trackers_from_map_cc(vv)
-
-pool = mp.Pool(96)
-
-# pool.map(collect_trackers_from_map_cc, list(v))
-for _ in tqdm(
-    pool.imap_unordered(collect_trackers_from_map_cc, list(v)), total=len(df)
-):
-    pass
-pool.close()
-pool.join()
+    df.progress_apply(collect_trackers_from_map_cc, axis=1, args=(fout,))
 
 
-# fout = open(f"dataset_cc/cc_dataset_england.txt", "w", encoding="utf-8")
-# df = pd.read_csv("resource/england.csv")[
-#     [
-#         "url_host_name",
-#         "warc_filename",
-#         "year",
-#         "warc_record_offset",
-#         "warc_record_length",
-#     ]
-# ]
-# v = df.values
+if __name__ == "__main__":
+    time_start = time.time()
 
-# # for vv in v:
-# #     collect_trackers_from_map_cc(vv)
+    if args.single_process:
+        single_process(args)
+    elif args.unit_test:
+        unit_test(args)
+    elif args.multi_process:
+        fout = open(f"{args.output_path}", "a", encoding="utf-8")
 
-# pool = mp.Pool(mp.cpu_count())
+        def collect_trackers_from_map_cc(row):
+            try:
+                url_host_name = row["url_host_name"]
+                warc_filename = row["warc_filename"]
+                offset = row["warc_record_offset"]
+                length = row["warc_record_length"]
+                url, trackers = process_warc_froms3(
+                    warc_filename,
+                    offset=offset,
+                    length=length,
+                    parser=get_text_selectolax,
+                )
+                line = url_host_name + "\t" + trackers + "\n"
+                # print(line)
+                fout.write(line)
+                fout.flush()
+                return trackers
+            except Exception as e:
+                print(e)
 
-# # pool.map(collect_trackers_from_map_cc, list(v))
-# for _ in tqdm(
-#     pool.imap_unordered(collect_trackers_from_map_cc, list(v)), total=len(df)
-# ):
-#     pass
-# pool.close()
-# pool.join()
+        df = pd.read_csv(f"{args.input_path}", skiprows=args.skiprows)
+
+        v = json.loads(df.to_json(orient="records"))
+        pool = mp.Pool(args.num_process)
+
+        # pool.map(collect_trackers_from_map_cc, list(v))
+        for _ in tqdm(
+            pool.imap_unordered(collect_trackers_from_map_cc, v), total=len(df)
+        ):
+            pass
+        pool.close()
+        pool.join()
+        print(f"total time: {time.time()-time_start}")
