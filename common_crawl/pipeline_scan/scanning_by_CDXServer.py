@@ -20,7 +20,7 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    "--output_path",
+    "--output_dir",
     type=str,
     default="websci/IA/GOV/",
     help="output path",
@@ -171,67 +171,32 @@ def unit_test():
 
 
 def collect_historical_url(year, list_host_name):
-    # first we judge if the fout exists
-    if os.path.exists(f"{args.output_path}domain_historical_year_{str(year)}.csv"):
-        print("file exists")
-        #   read the file
-        df = pd.read_csv(
-            f"{args.output_path}/domain_historical_year_{str(year)}.csv",
-            sep="\t",
-            names=["hostname", "historical_url"],
-        )
-        # filter all the NAN
-        df = df[df["historical_url"] == "NAN"]
-        # get the list of the hostnames
-        list_host_name = df["hostname"].unique()
-
-    fout = open(f"{args.output_path}domain_historical_year_{str(year)}.csv", "a+")
+    fout = open(f"{args.output_dir}/hostname_historical_year_{str(year)}.json", "a+")
     print(year)
     i = 0
     for item in tqdm(list_host_name):
         # logging the process using wandb
+        hostname = item.strip()
         i += 1
         wandb.log({"progress": i, "total": len(list_host_name)})
         time.sleep(1)
         # we should check if the url has been archived in the year
-        historical_url = get_specific_time_url(item, str(year), str(year))
+        historical_url = get_specific_time_url(hostname, str(year), str(year))
         if historical_url:
-            fout.write(item + "\t" + historical_url + "\n")
+            jsonwrite = json.dumps({"hostname": hostname, "url": historical_url})
+            fout.write(jsonwrite + "\n")
         else:
-            fout.write(item + "\t" + "NAN" + "\n")
+            # if the url has not been archived in the year
+            jsonwrite = json.dumps({"hostname": hostname, "url": "NAN"})
+            fout.write(jsonwrite + "\n")
         fout.flush()
     fout.close()
 
 
-def collect_historical_url_from_several_years(year_begin, year_end, list_host_name):
-    for year in range(year_begin, year_end):
-        fout = open(f"{args.output_path}domain_historical_year_{str(year)}.csv", "w")
-        print(year)
-        for item in tqdm(list_host_name):
-            time.sleep(1)
-            historical_url = get_timescan_fromCC(item)
-            if historical_url:
-                fout.write(item + "\t" + historical_url + "\n")
-            else:
-                fout.write(item + "\t" + "NAN" + "\n")
-            fout.flush()
-        fout.close()
-
-
 if __name__ == "__main__":
-    if args.input_data_path.endswith("csv"):
-        # read the dataset sample between x to y rows
-        df = pd.read_csv(args.input_data_path)
-    elif args.input_data_path.endswith("jsonl"):
-        df = pd.read_json(args.input_data_path, lines=True)
-    list_host_name = df["hostnames"].to_list()
-    if not os.path.exists(args.output_path):
-        os.makedirs(args.output_path, exist_ok=True)
-    if args.year:
-        collect_historical_url(args.year, list_host_name)
-    else:
-        collect_historical_url_from_several_years(
-            args.year_begin, args.year_end, list_host_name
-        )
-
+    if not os.path.exists(args.output_dir):
+        os.makedirs(args.output_dir, exist_ok=True)
+    assert args.year is not None
+    list_host_name = open(args.input_data_path, "r").readlines()
+    collect_historical_url(args.year, list_host_name)
     run.finish()
