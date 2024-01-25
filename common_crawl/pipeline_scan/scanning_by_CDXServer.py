@@ -46,11 +46,26 @@ parser.add_argument(
     default=None,
     help="year",
 )
+
+parser.add_argument(
+    "--project",
+    type=str,
+    default="websci",
+    help="project",
+)
+
+parser.add_argument(
+    "--group",
+    type=str,
+    default="IA",
+    help="group",
+)
+
 args = parser.parse_args()
 
 run = wandb.init(
-    project="websci",
-    group="IA",
+    project=args.project,
+    group=args.group,
     job_type=f"collect_historical_url{args.year}",
     config={
         "year": args.year,
@@ -161,7 +176,7 @@ def collect_historical_url(year, list_host_name):
         print("file exists")
         #   read the file
         df = pd.read_csv(
-            f"{args.output_path}domain_historical_year_{str(year)}.csv",
+            f"{args.output_path}/domain_historical_year_{str(year)}.csv",
             sep="\t",
             names=["hostname", "historical_url"],
         )
