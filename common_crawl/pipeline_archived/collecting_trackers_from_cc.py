@@ -148,11 +148,13 @@ if __name__ == "__main__":
                     length=length,
                     parser=get_text_selectolax,
                 )
-                line = url_host_name + "\t" + trackers + "\n"
+                write_json = json.dumps(
+                    {"url_host_name": url_host_name, "trackers": trackers}
+                )
+                # line = url_host_name + "\t" + trackers + "\n"
                 # print(line)
-                fout.write(line)
+                fout.write(write_json + "\n")
                 fout.flush()
-                return trackers
             except Exception as e:
                 print(e)
 
