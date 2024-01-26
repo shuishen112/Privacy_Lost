@@ -117,7 +117,7 @@ def get_specific_time_url(url, year_from, year_to):
             print("Let me sleep for 5 min ")
             print("ZZzzzz...")
             wandb.alert(
-                title=f"{year_from}--------{url} Connection refused by the server..",
+                title=f"{year_from}-{url} Connection refused",
                 text="Connection refused by the server.. Let me sleep for 5 min ZZzzzz...",
             )
             time.sleep(300)
