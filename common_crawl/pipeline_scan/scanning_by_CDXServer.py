@@ -61,6 +61,20 @@ parser.add_argument(
     help="group",
 )
 
+parser.add_argument(
+    "--list_begin",
+    type=int,
+    default=0,
+    help="list_begin",
+)
+
+parser.add_argument(
+    "--list_end",
+    type=int,
+    default=100,
+    help="list_end",
+)
+
 args = parser.parse_args()
 
 run = wandb.init(
@@ -171,7 +185,10 @@ def unit_test():
 
 
 def collect_historical_url(year, list_host_name):
-    fout = open(f"{args.output_dir}/hostname_historical_year_{str(year)}.json", "a+")
+    fout = open(
+        f"{args.output_dir}/hostname_historical_year_{str(year)}_{args.list_begin}_{args.list_end}.json",
+        "a+",
+    )
     print(year)
     i = 0
     for item in tqdm(list_host_name):
@@ -198,5 +215,5 @@ if __name__ == "__main__":
         os.makedirs(args.output_dir, exist_ok=True)
     assert args.year is not None
     list_host_name = open(args.input_data_path, "r").readlines()
-    collect_historical_url(args.year, list_host_name)
+    collect_historical_url(args.year, list_host_name[args.list_begin : args.list_end])
     run.finish()
