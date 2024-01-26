@@ -75,28 +75,44 @@ parser.add_argument(
     help="list_end",
 )
 
-args = parser.parse_args()
+parser.add_argument(
+    "--unit_test",
+    action="store_true",
+    help="unit_test",
+)
 
-run = wandb.init(
-    project=args.project,
-    group=args.group,
-    job_type=f"collect_historical_url{args.year}",
-    config={
-        "year": args.year,
-    },
+parser.add_argument(
+    "--wandb",
+    action="store_true",
+    help="wandb",
 )
 
 
-def get_specific_time_url(url, year_from, year_to):
-    link = (
-        "http://web.archive.org/cdx/search/cdx?url="
-        + url
-        + "&fl=timestamp,original&mimetype=text/html&output=json&from="
-        + year_from
-        + "&to="
-        + year_to
-        + "&collapse=timestamp:4&showSkipCount=true&lastSkipTimestamp=true&limit=1"
+args = parser.parse_args()
+
+if args.wandb:
+    run = wandb.init(
+        project=args.project,
+        group=args.group,
+        job_type=f"collect_historical_url{args.year}",
+        config={
+            "year": args.year,
+        },
     )
+
+
+def get_specific_time_url(url, year_from, year_to):
+    # link = (
+    #     "http://web.archive.org/cdx/search/cdx?url="
+    #     + url
+    #     + "&fl=timestamp,original&mimetype=text/html&output=json&from="
+    #     + year_from
+    #     + "&to="
+    #     + year_to
+    #     + "&collapse=timestamp:4&showSkipCount=true&lastSkipTimestamp=true&limit=1"
+    # )
+
+    link = f"https://web.archive.org/cdx/search/cdx?url={url}&from={year_from}&to={year_to}&limit=1&output=json&fl=timestamp,original"
     try:
         f = urlopen(link)
         text = f.read()
@@ -213,7 +229,12 @@ def collect_historical_url(year, list_host_name):
 if __name__ == "__main__":
     if not os.path.exists(args.output_dir):
         os.makedirs(args.output_dir, exist_ok=True)
-    assert args.year is not None
-    list_host_name = open(args.input_data_path, "r").readlines()
-    collect_historical_url(args.year, list_host_name[args.list_begin : args.list_end])
-    run.finish()
+    if args.unit_test:
+        unit_test()
+    else:
+        assert args.year is not None
+        list_host_name = open(args.input_data_path, "r").readlines()
+        collect_historical_url(
+            args.year, list_host_name[args.list_begin : args.list_end]
+        )
+        run.finish()
