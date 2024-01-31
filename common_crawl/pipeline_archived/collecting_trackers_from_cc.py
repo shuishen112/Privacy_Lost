@@ -6,9 +6,11 @@ from tqdm import tqdm
 import argparse
 from warc_module.warc_utils import get_text_selectolax, process_warc_froms3
 import time
+import wandb
 
 tqdm.pandas()
 import multiprocessing as mp
+
 
 print("Number of processors: ", mp.cpu_count())
 
@@ -58,13 +60,27 @@ argparser.add_argument(
 )
 argparser.add_argument(
     "--single_process",
-    type=bool,
-    default=False,
     help="single process collecting",
+)
+
+argparser.add_argument(
+    "--wandb",
+    action="store_true",
+    help="wandb usage",
 )
 
 
 args = argparser.parse_args()
+
+if args.wandb:
+    run = wandb.init(
+        project="communication_conference",
+        group="CC",
+        job_type=f"collect_historical_trackers{args.year}",
+        config={
+            "year": args.year,
+        },
+    )
 
 
 def collect_trackers_from_cc(row):
@@ -162,10 +178,13 @@ if __name__ == "__main__":
         pool = mp.Pool(args.num_process)
 
         # pool.map(collect_trackers_from_map_cc, list(v))
-        for _ in tqdm(
-            pool.imap_unordered(collect_trackers_from_map_cc, v), total=len(df)
+        for i, _ in enumerate(
+            tqdm(pool.imap_unordered(collect_trackers_from_map_cc, v), total=len(df))
         ):
-            pass
+            if args.wandb:
+                wandb.log({"progress": i + 1})
         pool.close()
         pool.join()
+        if args.wandb:
+            run.finish()
         print(f"total time: {time.time()-time_start}")
