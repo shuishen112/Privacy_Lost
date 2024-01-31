@@ -34,7 +34,7 @@ argparser.add_argument(
     help="input path of the dataset",
 )
 argparser.add_argument(
-    "--output_path",
+    "--output_dir",
     type=str,
     default="test.txt",
     help="output path of the dataset",
@@ -48,14 +48,12 @@ argparser.add_argument(
 )
 argparser.add_argument(
     "--multi_process",
-    type=bool,
-    default=False,
+    action="store_true",
     help="multi process collecting",
 )
 argparser.add_argument(
     "--unit_test",
-    type=bool,
-    default=False,
+    action="store_true",
     help="unit test",
 )
 argparser.add_argument(
@@ -93,7 +91,7 @@ def unit_test(args):
 
 
 def single_process(args):
-    fout = open(f"{args.output_path}", "w", encoding="utf-8")
+    fout = open(f"{args.output_dir}", "w", encoding="utf-8")
     df = pd.read_csv("resource/england.csv")[
         [
             "url_host_name",
@@ -134,7 +132,7 @@ if __name__ == "__main__":
     elif args.unit_test:
         unit_test(args)
     elif args.multi_process:
-        fout = open(f"{args.output_path}", "a", encoding="utf-8")
+        fout = open(f"{args.output_dir}", "a", encoding="utf-8")
 
         def collect_trackers_from_map_cc(row):
             try:

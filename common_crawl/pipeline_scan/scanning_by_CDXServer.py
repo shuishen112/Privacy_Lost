@@ -27,20 +27,6 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    "--year_begin",
-    type=int,
-    default=2023,
-    help="year",
-)
-
-parser.add_argument(
-    "--year_end",
-    type=int,
-    default=2024,
-    help="year",
-)
-
-parser.add_argument(
     "--year",
     type=int,
     default=None,
@@ -71,7 +57,7 @@ parser.add_argument(
 parser.add_argument(
     "--list_end",
     type=int,
-    default=100,
+    default=30000,
     help="list_end",
 )
 
