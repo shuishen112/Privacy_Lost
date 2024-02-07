@@ -76,12 +76,19 @@ argparser.add_argument(
     help="collect description",
 )
 
+argparser.add_argument(
+    "--group",
+    type=str,
+    default="CC",
+    help="group name",
+)
+
 args = argparser.parse_args()
 
 if args.wandb:
     run = wandb.init(
         project="communication_conference",
-        group="CC",
+        group=args.group,
         job_type=f"collect_historical_trackers{args.year}",
         config={
             "year": args.year,
