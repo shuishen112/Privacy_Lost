@@ -225,6 +225,29 @@ def get_outer_link(html):
         print(e)
     return outer_links
 
+# get the description from the html file
+def get_description_from_cc(html):
+    """get description from the html file
+
+    Args:
+        html (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
+    description = None
+    tree = HTMLParser(html)
+    if tree.body is None:
+        return description
+    for node in tree.tags("style"):
+        node.decompose()
+
+    try:
+        description_meta_tag = tree.css_first('meta[name="description"]')
+        description = description_meta_tag.attrs.get("content") if description_meta_tag else None
+    except Exception as e:
+        print(e)
+    return description
 
 # now is to collecting from cc
 def get_text_selectolax(html, source="cc"):
@@ -253,6 +276,7 @@ def get_text_selectolax(html, source="cc"):
             text = node.text()
             if "google-analytics" in text:
                 trackers.append("google-analytics.com")
+            
             if "href" in node.attributes:
                 url = node.attributes["href"]
                 domain = get_domain(url)
@@ -331,7 +355,7 @@ def process_warc_from_archive(filename, offset=None, length=None, parser=None):
             return (url, ",".join(trackers))
 
 
-def process_warc_froms3(file_name, offset=None, length=None, parser=None):
+def process_warc_froms3(file_name, offset=None, length=None, parser=None, get_description = False):
     s3 = boto3.client("s3")
     offset_end = offset + length - 1
     byte_range = "bytes={offset}-{end}".format(offset=offset, end=offset_end)
@@ -342,6 +366,9 @@ def process_warc_froms3(file_name, offset=None, length=None, parser=None):
         text = record.content_stream().read()
         trackers = parser(text)
         trackers = list(set(trackers))
+        if get_description:
+            description = get_description_from_cc(text)
+            return (url, ",".join(trackers), description)
         return (url, ",".join(trackers))
 
 

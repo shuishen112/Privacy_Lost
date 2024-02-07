@@ -69,6 +69,12 @@ argparser.add_argument(
     help="wandb usage",
 )
 
+argparser.add_argument(
+    "--get_description",
+    type=bool,
+    default=False,
+    help="collect description",
+)
 
 args = argparser.parse_args()
 
@@ -97,13 +103,15 @@ def collect_trackers_from_cc(row):
 
 
 def unit_test(args):
-    url, trackers = process_warc_froms3(
+    url, trackers, description = process_warc_froms3(
         "crawl-data/CC-MAIN-2015-14/segments/1427131298015.2/warc/CC-MAIN-20150323172138-00061-ip-10-168-14-71.ec2.internal.warc.gz",
         offset=882944732,
         length=10489,
         parser=get_text_selectolax,
+        get_description=True,
     )
     print(trackers)
+    print("description:", description)
 
 
 def single_process(args):
@@ -129,6 +137,7 @@ def single_process(args):
                 offset=offset,
                 length=length,
                 parser=get_text_selectolax,
+                get_description=args.get_description,
             )
             line = url_host_name + "\t" + trackers + "\n"
             fout.write(line)
@@ -156,15 +165,32 @@ if __name__ == "__main__":
                 warc_filename = row["warc_filename"]
                 offset = row["warc_record_offset"]
                 length = row["warc_record_length"]
-                url, trackers = process_warc_froms3(
-                    warc_filename,
-                    offset=offset,
-                    length=length,
-                    parser=get_text_selectolax,
-                )
-                write_json = json.dumps(
-                    {"url_host_name": url_host_name, "trackers": trackers}
-                )
+                if args.get_description:
+                    url, trackers, description = process_warc_froms3(
+                        warc_filename,
+                        offset=offset,
+                        length=length,
+                        parser=get_text_selectolax,
+                        get_description=args.get_description,
+                    )
+                    write_json = json.dumps(
+                        {
+                            "url_host_name": url_host_name,
+                            "trackers": trackers,
+                            "description": description,
+                        }
+                    )
+                else:
+                    url, trackers = process_warc_froms3(
+                        warc_filename,
+                        offset=offset,
+                        length=length,
+                        parser=get_text_selectolax,
+                        get_description=args.get_description,
+                    )
+                    write_json = json.dumps(
+                        {"url_host_name": url_host_name, "trackers": trackers}
+                    )
                 # line = url_host_name + "\t" + trackers + "\n"
                 # print(line)
                 fout.write(write_json + "\n")
