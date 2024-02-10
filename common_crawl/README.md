@@ -23,6 +23,7 @@ We get the historical snapshots for educational urls and control set urls based 
 2) resource/available-edu-urls.txt
 
 
+# ARCHIVE 
 ## Crawling
 
 1) crawling the html file to the local machine
@@ -43,3 +44,17 @@ Figure 1: notebook/track_evolution.ipynb
 
 Figure 2: notebook/Wilcoxon_Sign-Ranked.ipynb
 
+# COMMON CRAWL
+## unit test
+
+cd common_crawl
+
+export PYTHONPATH=./
+
+python pipeline_archived/collecting_trackers_from_cc.py --unit_test
+
+
+## Crawling from common crawl
+
+
+> python pipeline_archived/collecting_trackers_from_cc.py --input_path=communication_conference/CC/historical_scan/6.5_snapshot_2021_host_name.csv --num_process=96 --multi_process --output_dir=communication_conference/CC/historical_trackers/6.5_2021_with_description.json --get_description=True --group=CC_description --wandb
