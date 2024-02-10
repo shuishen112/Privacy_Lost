@@ -17,6 +17,3 @@
 # nohup python pipeline_plot_picture/stastics_cal_categories.py --year=2013 2>&1 &
 # nohup python pipeline_plot_picture/stastics_cal_categories.py --year=2012 2>&1 &
 
-nohup python pipeline_archived/collecting_trackers_from_cc.py --year=2021  > collecting_data_from_CC_all_2021.log 2>&1 &
-
-

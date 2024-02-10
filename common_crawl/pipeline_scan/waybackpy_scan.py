@@ -37,7 +37,7 @@ import requests
 
 # find the url in specific time
 
-df = pd.read_csv("RQX/10000sample_analysis/10000sample.csv").head(10)
+df = pd.read_csv("RQX/10000sample_analysis/10000sample.csv").head(1000)
 
 collect_key = "domain"
 
@@ -116,6 +116,7 @@ def get_specific_time_url_df(row, url_year):
         time.sleep(1)
         near = cdx_api.near(year=url_year)
         archive_url = near.archive_url
+        print(archive_url)
     except Exception as e:
         print(e)
         archive_url = None
