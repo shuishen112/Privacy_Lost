@@ -172,6 +172,7 @@ if __name__ == "__main__":
                 warc_filename = row["warc_filename"]
                 offset = row["warc_record_offset"]
                 length = row["warc_record_length"]
+                time = row.get("year", None)
                 if args.get_description:
                     url, trackers, description = process_warc_froms3(
                         warc_filename,
@@ -195,9 +196,18 @@ if __name__ == "__main__":
                         parser=get_text_selectolax,
                         get_description=args.get_description,
                     )
-                    write_json = json.dumps(
-                        {"url_host_name": url_host_name, "trackers": trackers}
-                    )
+                    if time:
+                        write_json = json.dumps(
+                            {
+                                "url_host_name": url_host_name,
+                                "trackers": trackers,
+                                "year": time,
+                            }
+                        )
+                    else:
+                        write_json = json.dumps(
+                            {"url_host_name": url_host_name, "trackers": trackers}
+                        )
                 # line = url_host_name + "\t" + trackers + "\n"
                 # print(line)
                 fout.write(write_json + "\n")
