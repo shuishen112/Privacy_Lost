@@ -31,7 +31,12 @@ parser.add_argument(
     default="websci/IA/GOV/",
     help="output path",
 )
-
+parser.add_argument(
+    "--input_path",
+    type=str,
+    default="websci/scanning_websites/government_websites_page_rank_2023_top_500_historical_url.csv",
+    help="input path",
+)
 parser.add_argument(
     "--year",
     type=str,
@@ -44,6 +49,11 @@ parser.add_argument(
     type=int,
     default=0,
     help=0,
+)
+parser.add_argument(
+    "--unit_test",
+    action="store_true",
+    help="unit test",
 )
 
 args_ = parser.parse_args()
@@ -184,24 +194,20 @@ def collect_trackers(type, year):
 #################################### collecting from historical trackers from Internet Archive ###############################
 
 
-def get_dataframe(year):
-    df = pd.read_csv(
-        f"websci/scanning_websites/government_websites_page_rank_{year}_top_500_historical_url.csv",
-        sep=",",
-        skiprows=args_.skiprows,
-    )
-    return df
-
-
 # only test one historical snapshot
 def test_archive():
     history_url = "https://web.archive.org/web/20151127040830/http://www.region-orlickehory.cz:80/"
     trackers = extract_trackers_from_internet_archive(history_url, get_text_selectolax)
     print(f"len:{len(trackers)}", trackers)
+    print("trackers:", trackers)
 
 
-if __name__ == "__main__":
-    df = get_dataframe(args_.year)
+def collecting():
+    df = pd.read_csv(
+        args_.input_path,
+        sep=",",
+        skiprows=args_.skiprows,
+    )
     run = wandb.init(
         project="websci",
         group="IA",
@@ -215,11 +221,10 @@ if __name__ == "__main__":
         wandb.log({"progress": e, "total": len(df)})
         hostname = item["hostname"]
         history_url = item["historical_url"]
-        print(hostname, history_url)
         if isinstance(history_url, float):
             fout.write(hostname + "\t" + "EMPTY_URL" + "\n")
             continue
-        time.sleep(1)
+        time.sleep(5)
         logger.info(f"collecting number:{e}:{hostname}")
         trackers = extract_trackers_from_internet_archive(
             history_url, get_text_selectolax
@@ -230,6 +235,13 @@ if __name__ == "__main__":
             fout.write(hostname + "\t" + "NO_TRACKERS" + "\n")
         fout.flush()
     run.finish()
+
+
+if __name__ == "__main__":
+    if args_.unit_test:
+        test_archive()
+    else:
+        collecting()
 
 #################################### colllecting outlinks from Internet Archive ###############################
 
@@ -256,5 +268,3 @@ if __name__ == "__main__":
 # for year in years:
 #     collect_trackers(f"{args['task_type']}_archive_ali", year)
 # logger.info(time.time() - t)
-
-########################### only test one historical snapshot ###########################
