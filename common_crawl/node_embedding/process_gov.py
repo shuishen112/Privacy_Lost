@@ -62,9 +62,9 @@ def get_node_embedding():
     df_explode["website_id"] = df_explode["url_host_name"].map(dict_websites)
     df_explode["tracker_id"] = df_explode["trackers_"].map(dict_trackers)
 
-    df_explode = df_explode.sort_values(by=["year"])
+    df_explode = df_explode.sort_values(by=["time_stamp"])
 
-    df_explode[["website_id", "tracker_id", "year"]].to_csv(
+    df_explode[["website_id", "tracker_id", "time_stamp"]].to_csv(
         args.node_embedding_output_dir, index=False, header=False
     )
 
