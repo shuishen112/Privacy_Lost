@@ -87,18 +87,18 @@ if args.wandb:
     )
 
 
-def get_specific_time_url(url, year_from, year_to):
+def get_specific_time_url(url, time_start, time_end):
     # link = (
     #     "http://web.archive.org/cdx/search/cdx?url="
     #     + url
     #     + "&fl=timestamp,original&mimetype=text/html&output=json&from="
-    #     + year_from
+    #     + time_start
     #     + "&to="
-    #     + year_to
+    #     + time_end
     #     + "&collapse=timestamp:4&showSkipCount=true&lastSkipTimestamp=true&limit=1"
     # )
 
-    link = f"https://web.archive.org/cdx/search/cdx?url={url}&from={year_from}&to={year_to}&limit=1&output=json&fl=timestamp,original"
+    link = f"https://web.archive.org/cdx/search/cdx?url={url}&from={time_start}&to={time_end}&limit=1&output=json&fl=timestamp,original"
     try:
         f = urlopen(link)
         text = f.read()
@@ -119,7 +119,7 @@ def get_specific_time_url(url, year_from, year_to):
             print("Let me sleep for 5 min ")
             print("ZZzzzz...")
             wandb.alert(
-                title=f"{year_from}-{url} Connection refused",
+                title=f"{time_start}-{url} Connection refused",
                 text="Connection refused by the server.. Let me sleep for 5 min ZZzzzz...",
             )
             time.sleep(300)
@@ -180,9 +180,14 @@ def multi_threading():
 
 def unit_test():
     url = "ku.dk"
-    year_from = "2012"
-    year_to = "2012"
-    print(get_specific_time_url(url, year_from, year_to))
+    time_start = "2012"
+    time_end = "2012"
+    print(get_specific_time_url(url, time_start, time_end))
+
+    # get the specific month
+    time_start = "201205"
+    time_end = "201205"
+    print(get_specific_time_url(url, time_start, time_end))
     # get_timespan("archive.org")
 
 
