@@ -119,6 +119,9 @@ The privacy List project aims to study how regional differences in power and pol
 
    ```sh
    git clone https://github.com/shuishen112/Privacy_Lost.git
+
+   cd Privacy_Lost/commoncrawl
+   pip install -r requirements.txt
    ```
 
 
@@ -156,7 +159,7 @@ collecting trackers from 2023, you should change the default input path
 
 
 # COMMON CRAWL
-## unit test
+## Unit test
 
 cd common_crawl
 
@@ -183,7 +186,7 @@ _For more examples, please refer to the [Documentation](https://example.com)_ --
 
 There are several steps to analyze the historical web tracking. 
 
-- pipeline sample: we create the samples. (Usually, samples are specific websites)
+- Sample: we create the samples. (Usually, samples are specific websites)
 
 - Scanning: we need to get access to the historical snapshot using wayback machine. 
 
