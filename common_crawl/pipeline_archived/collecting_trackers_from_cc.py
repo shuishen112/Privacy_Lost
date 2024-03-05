@@ -83,6 +83,12 @@ argparser.add_argument(
     help="group name",
 )
 
+argparser.add_argument(
+    "--time_stamp",
+    action="store_true",
+    help="time stamp",
+)
+
 args = argparser.parse_args()
 
 if args.wandb:
@@ -172,6 +178,7 @@ if __name__ == "__main__":
                 warc_filename = row["warc_filename"]
                 offset = row["warc_record_offset"]
                 length = row["warc_record_length"]
+                time_stamp = int(row["warc_filename"].split("/")[5].split("-")[2][2:10])
                 if args.get_description:
                     url, trackers, description = process_warc_froms3(
                         warc_filename,
@@ -195,9 +202,18 @@ if __name__ == "__main__":
                         parser=get_text_selectolax,
                         get_description=args.get_description,
                     )
-                    write_json = json.dumps(
-                        {"url_host_name": url_host_name, "trackers": trackers}
-                    )
+                    if args.time_stamp:
+                        write_json = json.dumps(
+                            {
+                                "url_host_name": url_host_name,
+                                "trackers": trackers,
+                                "time_stamp": time_stamp,
+                            }
+                        )
+                    else:
+                        write_json = json.dumps(
+                            {"url_host_name": url_host_name, "trackers": trackers}
+                        )
                 # line = url_host_name + "\t" + trackers + "\n"
                 # print(line)
                 fout.write(write_json + "\n")
