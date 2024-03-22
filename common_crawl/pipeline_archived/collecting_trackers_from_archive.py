@@ -219,7 +219,7 @@ def collecting():
     for e, item in df.iterrows():
         wandb.log({"progress": e, "total": len(df)})
         hostname = item["hostname"]
-        history_url = item["historical_url"]
+        history_url = item["url"]
         if isinstance(history_url, float):
             fout.write(hostname + "\t" + "EMPTY_URL" + "\n")
             continue
