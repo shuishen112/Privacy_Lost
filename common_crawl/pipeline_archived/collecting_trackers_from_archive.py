@@ -203,10 +203,9 @@ def test_archive():
 
 
 def collecting():
-    df = pd.read_csv(
+    df = pd.read_json(
         args_.input_path,
-        sep=",",
-        skiprows=args_.skiprows,
+        lines=True,
     )
     run = wandb.init(
         project="websci",
