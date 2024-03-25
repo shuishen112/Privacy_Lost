@@ -73,6 +73,13 @@ parser.add_argument(
     help="wandb",
 )
 
+parser.add_argument(
+    "--sleep_second",
+    type=int,
+    default=5,
+    help="sleep_second",
+)
+
 
 args = parser.parse_args()
 
@@ -203,7 +210,7 @@ def collect_historical_url(year, list_host_name):
         hostname = item.strip()
         i += 1
         wandb.log({"progress": i, "total": len(list_host_name)})
-        time.sleep(5)
+        time.sleep(args.sleep_second)
         # we should check if the url has been archived in the year
         historical_url = get_specific_time_url(hostname, str(year), str(year))
         if historical_url:

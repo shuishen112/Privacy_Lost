@@ -56,6 +56,13 @@ parser.add_argument(
     help="unit test",
 )
 
+parser.add_argument(
+    "--sleep_second",
+    type=int,
+    default=5,
+    help="sleep_second",
+)
+
 args_ = parser.parse_args()
 
 
@@ -223,12 +230,12 @@ def collecting():
         if isinstance(history_url, float):
             fout.write(hostname + "\t" + "EMPTY_URL" + "\n")
             continue
-        time.sleep(5)
+        time.sleep(args_.sleep_second)
         logger.info(f"collecting number:{e}:{hostname}")
         trackers = extract_trackers_from_internet_archive(
             history_url, get_text_selectolax
         )
-        if trackers is not None and trackers != "REFUSED":
+        if trackers is not None and trackers not in ["REFUSED", "DEAD"]:
             fout.write(hostname + "\t" + ",".join(trackers) + "\n")
         else:
             fout.write(hostname + "\t" + "NO_TRACKERS" + "\n")
