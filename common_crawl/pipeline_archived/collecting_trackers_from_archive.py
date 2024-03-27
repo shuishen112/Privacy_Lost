@@ -28,7 +28,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument(
     "--output_path",
     type=str,
-    default="websci/IA/GOV/",
+    default="debug/IA/GOV/",
     help="output path",
 )
 parser.add_argument(
@@ -227,7 +227,7 @@ def collecting():
         wandb.log({"progress": e, "total": len(df)})
         hostname = item["hostname"]
         history_url = item["url"]
-        if isinstance(history_url, float):
+        if history_url in ["NAN", "DEAD"]:
             fout.write(hostname + "\t" + "EMPTY_URL" + "\n")
             continue
         time.sleep(args_.sleep_second)
