@@ -8,8 +8,6 @@ import argparse
 import os
 import wandb
 
-wandb.login()
-
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
@@ -84,6 +82,7 @@ parser.add_argument(
 args = parser.parse_args()
 
 if args.wandb:
+    wandb.login()
     run = wandb.init(
         project=args.project,
         group=args.group,
@@ -125,10 +124,11 @@ def get_specific_time_url(url, time_start, time_end):
             print("Connection refused by the server..")
             print("Let me sleep for 5 min ")
             print("ZZzzzz...")
-            wandb.alert(
-                title=f"{time_start}-{url} Connection refused",
-                text="Connection refused by the server.. Let me sleep for 5 min ZZzzzz...",
-            )
+            if args.wandb:
+                wandb.alert(
+                    title=f"{time_start}-{url} Connection refused",
+                    text="Connection refused by the server.. Let me sleep for 5 min ZZzzzz...",
+                )
             time.sleep(300)
             print("Was a nice sleep, now let me continue...")
             return "REFUSED"
@@ -209,7 +209,8 @@ def collect_historical_url(year, list_host_name):
         # logging the process using wandb
         hostname = item.strip()
         i += 1
-        wandb.log({"progress": i, "total": len(list_host_name)})
+        if args.wandb:
+            wandb.log({"progress": i, "total": len(list_host_name)})
         time.sleep(args.sleep_second)
         # we should check if the url has been archived in the year
         historical_url = get_specific_time_url(hostname, str(year), str(year))
@@ -235,4 +236,5 @@ if __name__ == "__main__":
         collect_historical_url(
             args.year, list_host_name[args.list_begin : args.list_end]
         )
-        run.finish()
+        if args.wandb:
+            run.finish()

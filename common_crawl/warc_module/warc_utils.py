@@ -4,6 +4,7 @@ Date: 2021-03-12 14:59:58
 LastEditTime: 2022-03-27 21:39:54
 LastEditors: Please set LastEditors
 Description: warc utils. We can use warc feature"""
+
 # coding: utf-8
 
 import re
@@ -89,7 +90,7 @@ def get_domain_from_ia(url, is_register_domain=False):
         if is_register_domain:
             domain = tldextract.extract(str(urlparse(url).netloc)).domain
         # ignore the "archive"
-        if domain == "www.archive.org":
+        if "archive." in domain:
             return None
         if domain not in domain_url:
             domain_url[domain] = url
@@ -225,6 +226,7 @@ def get_outer_link(html):
         print(e)
     return outer_links
 
+
 # get the description from the html file
 def get_description_from_cc(html):
     """get description from the html file
@@ -244,10 +246,13 @@ def get_description_from_cc(html):
 
     try:
         description_meta_tag = tree.css_first('meta[name="description"]')
-        description = description_meta_tag.attrs.get("content") if description_meta_tag else None
+        description = (
+            description_meta_tag.attrs.get("content") if description_meta_tag else None
+        )
     except Exception as e:
         print(e)
     return description
+
 
 # now is to collecting from cc
 def get_text_selectolax(html, source="cc"):
@@ -276,7 +281,7 @@ def get_text_selectolax(html, source="cc"):
             text = node.text()
             if "google-analytics" in text:
                 trackers.append("google-analytics.com")
-            
+
             if "href" in node.attributes:
                 url = node.attributes["href"]
                 domain = get_domain(url)
@@ -355,7 +360,9 @@ def process_warc_from_archive(filename, offset=None, length=None, parser=None):
             return (url, ",".join(trackers))
 
 
-def process_warc_froms3(file_name, offset=None, length=None, parser=None, get_description = False):
+def process_warc_froms3(
+    file_name, offset=None, length=None, parser=None, get_description=False
+):
     s3 = boto3.client("s3")
     offset_end = offset + length - 1
     byte_range = "bytes={offset}-{end}".format(offset=offset, end=offset_end)
