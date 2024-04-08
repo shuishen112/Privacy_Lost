@@ -154,7 +154,7 @@ unit test
 
 collecting trackers from 2023, you should change the default input path
 
-> python pipeline_archived/collecting_trackers_from_archive.py --year=2023 --output_path=debug
+> python pipeline_archived/collecting_trackers_from_archive.py --year=2023 --input_path=your_scanning_file --output_path=debug
 
 
 
