@@ -144,7 +144,7 @@ Web Tracking Evolution](common_crawl/README.md)
 
 In this case, we scan the snapshot from 2003. 
 
-> python pipeline_scan/scanning_by_CDXServer.py --year=2003 --input_data_path=communication_conference/complete_list.csv --output_dir=debug --list_begin=30000 --list_end=60000 --wandb
+> python pipeline_scan/scanning_by_CDXServer.py --year=2003 --input_data_path=communication_conference/complete_list.csv --output_dir=debug --list_begin=30000 --list_end=60000
 
 2. collecting trackers:
 
