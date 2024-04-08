@@ -6,6 +6,7 @@ LastEditors: Please set LastEditors
 Description: collect dataset from Archive
 FilePath: /common_crawl/wtf.py
 """
+
 from warcio import WARCWriter
 from warcio.statusandheaders import StatusAndHeaders
 import requests
@@ -82,7 +83,7 @@ def collect_dataset(row, year):
         print(e)
 
 
-def extract_trackers_from_internet_archive(url, parser):
+def extract_trackers_from_internet_archive(url, parser, if_wandb=False):
     try:
         url_host_name = get_domain_from_ia(url)
         resp = requests.get(url, headers={"Accept-Encoding": "identity"}, stream=True)
@@ -103,10 +104,11 @@ def extract_trackers_from_internet_archive(url, parser):
             print("Connection refused by the server..")
             print("Let me sleep for 5 min ")
             print("ZZzzzz...")
-            wandb.alert(
-                title="Connection refused by the server..",
-                text="Connection refused by the server.. Let me sleep for 5 min ZZzzzz...",
-            )
+            if if_wandb:
+                wandb.alert(
+                    title="Connection refused by the server..",
+                    text="Connection refused by the server.. Let me sleep for 5 min ZZzzzz...",
+                )
             time.sleep(300)
             print("Was a nice sleep, now let me continue...")
             return "REFUSED"

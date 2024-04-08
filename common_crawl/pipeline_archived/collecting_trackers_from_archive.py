@@ -57,6 +57,12 @@ parser.add_argument(
 )
 
 parser.add_argument(
+    "--wandb",
+    action="store_true",
+    help="wandb",
+)
+
+parser.add_argument(
     "--sleep_second",
     type=int,
     default=5,
@@ -214,17 +220,19 @@ def collecting():
         args_.input_path,
         lines=True,
     )
-    run = wandb.init(
-        project="websci",
-        group="IA",
-        job_type=f"collect_historical_trackers{args_.year}",
-        config={
-            "year": args_.year,
-        },
-    )
-    fout = open(args_.output_path + f"/archived_websites_{args_.year}", "w")
+    if args_.wandb:
+        run = wandb.init(
+            project="websci",
+            group="IA",
+            job_type=f"collect_historical_trackers{args_.year}",
+            config={
+                "year": args_.year,
+            },
+        )
+    fout = open(args_.output_path + f"/archived_websites_{args_.year}.csv", "w")
     for e, item in df.iterrows():
-        wandb.log({"progress": e, "total": len(df)})
+        if args_.wandb:
+            wandb.log({"progress": e, "total": len(df)})
         hostname = item["hostname"]
         history_url = item["url"]
         if history_url in ["NAN", "DEAD"]:
@@ -233,14 +241,15 @@ def collecting():
         time.sleep(args_.sleep_second)
         logger.info(f"collecting number:{e}:{hostname}")
         trackers = extract_trackers_from_internet_archive(
-            history_url, get_text_selectolax
+            history_url, get_text_selectolax, if_wandb=args_.wandb
         )
         if trackers is not None and trackers not in ["REFUSED", "DEAD"]:
             fout.write(hostname + "\t" + ",".join(trackers) + "\n")
         else:
             fout.write(hostname + "\t" + "NO_TRACKERS" + "\n")
         fout.flush()
-    run.finish()
+    if args_.wandb:
+        run.finish()
 
 
 if __name__ == "__main__":
