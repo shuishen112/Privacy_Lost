@@ -127,6 +127,8 @@ The privacy List project aims to study how regional differences in power and pol
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
+you also need to registered the https://www.zyte.com/ to use this library efficiently (with multi-threads)
+
 
 
 <!-- USAGE EXAMPLES -->
@@ -140,28 +142,36 @@ Web Tracking Evolution](common_crawl/README.md)
 
 # Internet Archive 
 
-1. scanning process:
+## Scanning process:
 
+### Single-thread
 In this case, we scan the snapshot from 2003. 
 
  ```
  python pipeline_scan/scanning_by_CDXServer.py --year=2003 --input_data_path=communication_conference/complete_list.csv --output_dir=debug --list_begin=30000 --list_end=60000
  ```
 
-2. collecting trackers:
+### Multi-thread
 
-unit test 
+```
+python pipeline_scan/scanning_by_CDXServer.py --year=2003 --input_data_path=communication_conference/complete_list.csv --output_dir=debug --list_begin=30000 --list_end=60000 --sleep_second=0 --multi_process --num_process=48
+ ```
+## Collecting trackers:
+
+### Unit test 
 
 ```
 python pipeline_archived/collecting_trackers_from_archive.py --unit_test
 ```
 collecting trackers from 2023, you should change the default input path
 
+### Single-thread
+
 ```
 python pipeline_archived/collecting_trackers_from_archive.py --year=2023 --input_path=your_scanning_file --output_path=debug
 ```
 
-multi-thread
+### Multi-thread
 
 ```
 python pipeline_archived/collecting_trackers_from_archive.py --year=2023 --input_path=debug/hostname_historical_year_2023_30000_60000.json  --output_path=debug --sleep_second=0 --multi_process --num_process=48
