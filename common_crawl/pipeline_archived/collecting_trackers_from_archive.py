@@ -8,6 +8,7 @@ from os import path
 import logging
 import os
 import wandb
+import multiprocessing as mp
 
 sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
 from config import args
@@ -67,6 +68,19 @@ parser.add_argument(
     type=int,
     default=5,
     help="sleep_second",
+)
+
+parser.add_argument(
+    "--multi_process",
+    action="store_true",
+    help="multi process",
+)
+
+parser.add_argument(
+    "--num_process",
+    type=int,
+    default=1,
+    help="number of processes",
 )
 
 args_ = parser.parse_args()
@@ -215,20 +229,12 @@ def test_archive():
     print("trackers:", trackers)
 
 
-def collecting():
+def collecting_single_thread():
     df = pd.read_json(
         args_.input_path,
         lines=True,
     )
-    if args_.wandb:
-        run = wandb.init(
-            project="websci",
-            group="IA",
-            job_type=f"collect_historical_trackers{args_.year}",
-            config={
-                "year": args_.year,
-            },
-        )
+
     fout = open(args_.output_path + f"/archived_websites_{args_.year}.csv", "w")
     for e, item in df.iterrows():
         if args_.wandb:
@@ -248,15 +254,65 @@ def collecting():
         else:
             fout.write(hostname + "\t" + "NO_TRACKERS" + "\n")
         fout.flush()
-    if args_.wandb:
-        run.finish()
 
 
 if __name__ == "__main__":
+
+    if args_.wandb:
+        run = wandb.init(
+            project="websci",
+            group="IA",
+            job_type=f"collect_historical_trackers{args_.year}",
+            config={
+                "year": args_.year,
+            },
+        )
     if args_.unit_test:
         test_archive()
+    elif args_.multi_process:
+        import json
+
+        df = pd.read_json(
+            args_.input_path,
+            lines=True,
+        )
+
+        fout = open(args_.output_path + f"/archived_websites_{args_.year}.csv", "w")
+
+        def collect_trackers_from_map_ia(row):
+            try:
+                hostname = row["hostname"]
+                history_url = row["url"]
+                if history_url in ["NAN", "DEAD"]:
+                    return hostname + "\t" + "EMPTY_URL" + "\n"
+                time.sleep(args_.sleep_second)
+                logger.info(f"collecting number:{hostname}")
+                trackers = extract_trackers_from_internet_archive(
+                    history_url, get_text_selectolax, if_wandb=args_.wandb
+                )
+                if trackers is not None and trackers not in ["REFUSED", "DEAD"]:
+                    fout.write(hostname + "\t" + ",".join(trackers) + "\n")
+                else:
+                    fout.write(hostname + "\t" + "NO_TRACKERS" + "\n")
+                fout.flush()
+            except Exception as e:
+                print(e)
+
+        pool = mp.Pool(args_.num_process)
+        v = json.loads(df.to_json(orient="records"))
+        # pool.map(collect_trackers_from_map_cc, list(v))
+        for i, _ in enumerate(
+            tqdm(pool.imap_unordered(collect_trackers_from_map_ia, v), total=len(df))
+        ):
+            if args_.wandb:
+                wandb.log({"progress": i + 1})
+        pool.close()
+        pool.join()
+
     else:
-        collecting()
+        collecting_single_thread()
+    if args_.wandb:
+        run.finish()
 
 #################################### colllecting outlinks from Internet Archive ###############################
 
