@@ -78,6 +78,19 @@ parser.add_argument(
     help="sleep_second",
 )
 
+parser.add_argument(
+    "--multi_process",
+    action="store_true",
+    help="multi process",
+)
+
+parser.add_argument(
+    "--num_process",
+    type=int,
+    default=1,
+    help="number of processes",
+)
+
 
 args = parser.parse_args()
 
@@ -211,7 +224,6 @@ def collect_historical_url(year, list_host_name):
         f"{args.output_dir}/hostname_historical_year_{str(year)}_{args.list_begin}_{args.list_end}.json",
         "a+",
     )
-    print(year)
     i = 0
     for item in tqdm(list_host_name):
         # logging the process using wandb
@@ -238,6 +250,37 @@ if __name__ == "__main__":
         os.makedirs(args.output_dir, exist_ok=True)
     if args.unit_test:
         unit_test()
+    if args.multi_process:
+        fout = open(
+            f"{args.output_dir}/hostname_historical_year_{str(args.year)}.json",
+            "a+",
+        )
+
+        def collect_historical_url_multi(hostname):
+            hostname = hostname.strip()
+
+            time.sleep(args.sleep_second)
+            historical_url = get_specific_time_url(
+                hostname, str(args.year), str(args.year)
+            )
+            if historical_url:
+                jsonwrite = json.dumps({"hostname": hostname, "url": historical_url})
+                fout.write(jsonwrite + "\n")
+            else:
+                jsonwrite = json.dumps({"hostname": hostname, "url": "NAN"})
+                fout.write(jsonwrite + "\n")
+            fout.flush()
+
+        pool = mp.Pool(args.num_process)
+        v = list(open(args.input_data_path, "r").readlines())
+        for i, _ in enumerate(
+            tqdm(pool.imap_unordered(collect_historical_url_multi, v), total=len(v))
+        ):
+            if args.wandb:
+                wandb.log({"progress": i + 1})
+        pool.close()
+        pool.join()
+
     else:
         assert args.year is not None
         list_host_name = open(args.input_data_path, "r").readlines()
