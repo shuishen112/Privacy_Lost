@@ -74,7 +74,7 @@ parser.add_argument(
 parser.add_argument(
     "--sleep_second",
     type=int,
-    default=5,
+    default=0,
     help="sleep_second",
 )
 
@@ -106,8 +106,16 @@ def get_specific_time_url(url, time_start, time_end):
 
     link = f"https://web.archive.org/cdx/search/cdx?url={url}&from={time_start}&to={time_end}&limit=1&output=json&fl=timestamp,original"
     try:
-        f = urlopen(link)
-        text = f.read()
+        text = requests.get(
+            link,
+            proxies={
+                "http": "http://17c6f0e36605472d8b3d8bdb034a1bd3:@api.zyte.com:8011/",
+                "https": "http://17c6f0e36605472d8b3d8bdb034a1bd3:@api.zyte.com:8011/",
+            },
+            verify="zyte/zyte-ca.crt",
+        ).text
+        # f = urlopen(link)
+        # text = f.read()
         list_archive = json.loads(text)
         if len(list_archive) == 2:
             timestamp = list_archive[1][0]
