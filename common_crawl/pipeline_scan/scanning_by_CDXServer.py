@@ -7,6 +7,7 @@ from tqdm import tqdm
 import argparse
 import os
 import wandb
+from functools import partial
 
 
 parser = argparse.ArgumentParser()
@@ -104,6 +105,25 @@ if args.wandb:
             "year": args.year,
         },
     )
+
+fout = open(
+    f"{args.output_dir}/hostname_historical_year_{str(args.year)}.json",
+    "a+",
+)
+
+
+def collect_historical_url_multi(hostname):
+    hostname = hostname.strip()
+
+    time.sleep(args.sleep_second)
+    historical_url = get_specific_time_url(hostname, str(args.year), str(args.year))
+    if historical_url:
+        jsonwrite = json.dumps({"hostname": hostname, "url": historical_url})
+        fout.write(jsonwrite + "\n")
+    else:
+        jsonwrite = json.dumps({"hostname": hostname, "url": "NAN"})
+        fout.write(jsonwrite + "\n")
+    fout.flush()
 
 
 def get_specific_time_url(url, time_start, time_end):
@@ -254,30 +274,13 @@ if __name__ == "__main__":
     if args.unit_test:
         unit_test()
     if args.multi_process:
-        fout = open(
-            f"{args.output_dir}/hostname_historical_year_{str(args.year)}.json",
-            "a+",
-        )
-
-        def collect_historical_url_multi(hostname):
-            hostname = hostname.strip()
-
-            time.sleep(args.sleep_second)
-            historical_url = get_specific_time_url(
-                hostname, str(args.year), str(args.year)
-            )
-            if historical_url:
-                jsonwrite = json.dumps({"hostname": hostname, "url": historical_url})
-                fout.write(jsonwrite + "\n")
-            else:
-                jsonwrite = json.dumps({"hostname": hostname, "url": "NAN"})
-                fout.write(jsonwrite + "\n")
-            fout.flush()
-
         pool = mp.Pool(args.num_process)
         v = list(open(args.input_data_path, "r").readlines())
         for i, _ in enumerate(
-            tqdm(pool.imap_unordered(collect_historical_url_multi, v), total=len(v))
+            tqdm(
+                pool.imap_unordered(collect_historical_url_multi, v),
+                total=len(v),
+            )
         ):
             if args.wandb:
                 wandb.log({"progress": i + 1})
