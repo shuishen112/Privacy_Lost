@@ -165,6 +165,38 @@ t = time.time()
 
 #################################### collecting from historical trackers from Internet Archive ###############################
 
+fout = open(args.output_path + f"/archived_websites_{args.year}.csv", "w")
+
+
+def collect_trackers_from_map_ia(row):
+    try:
+        hostname = row["hostname"]
+        history_url = row["url"]
+        # get historical url
+
+        if history_url in ["NAN", "DEAD"]:
+            return hostname + "\t" + "EMPTY_URL" + "\n"
+        fields = history_url.split("/")
+        fields[4] = fields[4] + "id_"
+        history_url = "/".join(fields)
+        time.sleep(args.sleep_second)
+        logger.info(f"collecting number:{hostname}")
+        trackers = extract_trackers_from_internet_archive(
+            history_url, get_text_selectolax, if_wandb=args.wandb
+        )
+        if trackers == []:
+            fout.write(hostname + "\t" + "NO_TRACKERS" + "\n")
+        elif trackers == "REFUSED":
+            fout.write(hostname + "\t" + "REFUSED" + "\n")
+        elif trackers == "DEAD":
+            fout.write(hostname + "\t" + "DEAD" + "\n")
+        else:
+            fout.write(hostname + "\t" + ",".join(trackers) + "\n")
+        fout.flush()
+    except Exception as e:
+        print(history_url)
+        print(e)
+
 
 # only test one historical snapshot
 def test_archive():
@@ -192,7 +224,7 @@ def collecting_single_thread():
         fields = history_url.split("/")
         fields[4] = fields[4] + "id_"
         history_url = "/".join(fields)
-        
+
         if history_url in ["NAN", "DEAD"]:
             fout.write(hostname + "\t" + "EMPTY_URL" + "\n")
             continue
@@ -232,36 +264,6 @@ if __name__ == "__main__":
             args.input_path,
             lines=True,
         )
-
-        fout = open(args.output_path + f"/archived_websites_{args.year}.csv", "w")
-
-        def collect_trackers_from_map_ia(row):
-            try:
-                hostname = row["hostname"]
-                history_url = row["url"]
-                # get historical url
-                fields = history_url.split("/")
-                fields[4] = fields[4] + "id_"
-                history_url = "/".join(fields)
-
-                if history_url in ["NAN", "DEAD"]:
-                    return hostname + "\t" + "EMPTY_URL" + "\n"
-                time.sleep(args.sleep_second)
-                logger.info(f"collecting number:{hostname}")
-                trackers = extract_trackers_from_internet_archive(
-                    history_url, get_text_selectolax, if_wandb=args.wandb
-                )
-                if trackers == []:
-                    fout.write(hostname + "\t" + "NO_TRACKERS" + "\n")
-                elif trackers == "REFUSED":
-                    fout.write(hostname + "\t" + "REFUSED" + "\n")
-                elif trackers == "DEAD":
-                    fout.write(hostname + "\t" + "DEAD" + "\n")
-                else:
-                    fout.write(hostname + "\t" + ",".join(trackers) + "\n")
-                fout.flush()
-            except Exception as e:
-                print(e)
 
         pool = mp.Pool(args.num_process)
         v = json.loads(df.to_json(orient="records"))
