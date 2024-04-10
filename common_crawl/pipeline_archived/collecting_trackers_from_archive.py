@@ -9,6 +9,7 @@ import logging
 import os
 import wandb
 import multiprocessing as mp
+import json
 
 sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
 
@@ -165,7 +166,7 @@ t = time.time()
 
 #################################### collecting from historical trackers from Internet Archive ###############################
 
-fout = open(args.output_path + f"/archived_websites_{args.year}.csv", "w")
+fout = open(args.output_path + f"/archived_websites_{args.year}.json", "w")
 
 
 def collect_trackers_from_map_ia(row):
@@ -185,16 +186,18 @@ def collect_trackers_from_map_ia(row):
             history_url, get_text_selectolax, if_wandb=args.wandb
         )
         if trackers == []:
-            fout.write(hostname + "\t" + "NO_TRACKERS" + "\n")
+            fout.write(
+                json.dumps({"hostname": hostname, "trackers": "NO_TRACKERS"}) + "\n"
+            )
         elif trackers == "REFUSED":
-            fout.write(hostname + "\t" + "REFUSED" + "\n")
+            fout.write(json.dumps({"hostname": hostname, "trackers": "REFUSED"}) + "\n")
         elif trackers == "DEAD":
-            fout.write(hostname + "\t" + "DEAD" + "\n")
+            fout.write(json.dumps({"hostname": hostname, "trackers": "DEAD"}) + "\n")
         else:
-            fout.write(hostname + "\t" + ",".join(trackers) + "\n")
+            fout.write(json.dumps({"hostname": hostname, "trackers": trackers}) + "\n")
         fout.flush()
     except Exception as e:
-        print(history_url)
+        # print(history_url)
         print(e)
 
 
