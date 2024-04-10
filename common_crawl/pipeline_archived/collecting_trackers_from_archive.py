@@ -223,7 +223,7 @@ def collect_trackers(type, year):
 
 # only test one historical snapshot
 def test_archive():
-    history_url = "https://web.archive.org/web/20151127040830/http://www.region-orlickehory.cz:80/"
+    history_url = "https://web.archive.org/web/20230324224114/http://investwell.app/"
     trackers = extract_trackers_from_internet_archive(history_url, get_text_selectolax)
     print(f"len:{len(trackers)}", trackers)
     print("trackers:", trackers)
@@ -249,10 +249,14 @@ def collecting_single_thread():
         trackers = extract_trackers_from_internet_archive(
             history_url, get_text_selectolax, if_wandb=args_.wandb
         )
-        if trackers is not None and trackers not in ["REFUSED", "DEAD"]:
-            fout.write(hostname + "\t" + ",".join(trackers) + "\n")
-        else:
+        if trackers == []:
             fout.write(hostname + "\t" + "NO_TRACKERS" + "\n")
+        elif trackers == "REFUSED":
+            fout.write(hostname + "\t" + "REFUSED" + "\n")
+        elif trackers == "DEAD":
+            fout.write(hostname + "\t" + "DEAD" + "\n")
+        else:
+            fout.write(hostname + "\t" + ",".join(trackers) + "\n")
         fout.flush()
 
 
@@ -290,10 +294,14 @@ if __name__ == "__main__":
                 trackers = extract_trackers_from_internet_archive(
                     history_url, get_text_selectolax, if_wandb=args_.wandb
                 )
-                if trackers is not None and trackers not in ["REFUSED", "DEAD"]:
-                    fout.write(hostname + "\t" + ",".join(trackers) + "\n")
-                else:
+                if trackers == []:
                     fout.write(hostname + "\t" + "NO_TRACKERS" + "\n")
+                elif trackers == "REFUSED":
+                    fout.write(hostname + "\t" + "REFUSED" + "\n")
+                elif trackers == "DEAD":
+                    fout.write(hostname + "\t" + "DEAD" + "\n")
+                else:
+                    fout.write(hostname + "\t" + ",".join(trackers) + "\n")
                 fout.flush()
             except Exception as e:
                 print(e)
