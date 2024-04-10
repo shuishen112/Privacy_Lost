@@ -118,14 +118,17 @@ def get_specific_time_url(url, time_start, time_end):
     # )
 
     link = f"https://web.archive.org/cdx/search/cdx?url={url}&from={time_start}&to={time_end}&limit=1&output=json&fl=timestamp,original"
+    api = os.environ.get("API", None)
+
+    assert api is not None
     try:
         text = requests.get(
             link,
             proxies={
-                "http": "http://17c6f0e36605472d8b3d8bdb034a1bd3:@api.zyte.com:8011/",
-                "https": "http://17c6f0e36605472d8b3d8bdb034a1bd3:@api.zyte.com:8011/",
+                "http": f"http://{api}:@api.zyte.com:8011/",
+                "https": f"http://{api}:@api.zyte.com:8011/",
             },
-            verify="zyte/zyte-ca.crt",
+            verify="zyte/zyte-ca.crt",  # your path to the certificate
         ).text
         # f = urlopen(link)
         # text = f.read()

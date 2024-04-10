@@ -84,26 +84,23 @@ def collect_dataset(row, year):
 
 
 def extract_trackers_from_internet_archive(url, parser, if_wandb=False):
+
+    api = os.environ.get("API", None)
+
+    assert api is not None
     try:
         url_host_name = get_domain_from_ia(url)
         resp = requests.get(
             url,
             headers={"Accept-Encoding": "identity"},
             proxies={
-                "http": "http://17c6f0e36605472d8b3d8bdb034a1bd3:@api.zyte.com:8011/",
-                "https": "http://17c6f0e36605472d8b3d8bdb034a1bd3:@api.zyte.com:8011/",
+                "http": f"http://{api}:@api.zyte.com:8011/",
+                "https": f"http://{api}:@api.zyte.com:8011/",
             },
+            verify="zyte/zyte-ca.crt",  # your path to the certificate
             stream=True,
-            verify="zyte/zyte-ca.crt",
         )
 
-        # response = requests.get(
-        #     "https://books.toscrape.com/",
-        #     proxies={
-        #         "http": "http://17c6f0e36605472d8b3d8bdb034a1bd3:@api.zyte.com:8011/",
-        #         "https": "http://17c6f0e36605472d8b3d8bdb034a1bd3:@api.zyte.com:8011/",
-        #     },
-        # )
         text = resp.text
         trackers = parser(text, source="ia")
         # filter the trackers that are not in the same url_host_name
