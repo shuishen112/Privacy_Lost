@@ -127,8 +127,20 @@ The privacy List project aims to study how regional differences in power and pol
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-### register
+### Register Zyte
+
 you also need to registered the https://www.zyte.com/ to use this library efficiently (with multi-threads)
+
+- download the zyte-ca.crt file from https://app.zyte.com/o/659646/zyte-api/run-request
+
+- save the file in the path
+common_crawl/zyte/zyte-ca.crt
+
+- set the API environment
+
+```
+export API=your api
+```
 
 
 
