@@ -11,18 +11,12 @@ import wandb
 import multiprocessing as mp
 
 sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
-from config import args
 
 from warc_module.warc_utils import (
     get_text_selectolax,
-    process_warc_from_archive,
     get_outer_link,
 )
-from utils import (
-    extract_trackers_from_internet_archive,
-    collect_dataset_from_url,
-    download_dataset_from_url,
-)
+from utils import extract_trackers_from_internet_archive
 import argparse
 
 parser = argparse.ArgumentParser()
@@ -83,12 +77,12 @@ parser.add_argument(
     help="number of processes",
 )
 
-args_ = parser.parse_args()
+args = parser.parse_args()
 
 
 ###### add log ######
 logging.basicConfig(
-    filename=f"all_tracker_{args_.year}.log",
+    filename=f"all_tracker_{args.year}.log",
     level=logging.WARNING,
     format="%(asctime)s:%(levelname)s:%(name)s:%(message)s",
 )
@@ -101,55 +95,6 @@ logger.addHandler(handler)
 logger.setLevel(logging.INFO)
 
 t = time.time()
-
-
-df = pd.read_csv(
-    args["data_path"],
-    names=["edu_url", "url", "historical_url"],
-    sep="\t",
-).dropna()
-
-logger.info(f"task_type:{args['task_type']}")
-
-if args["task_type"] == "edu":
-    filter_set = set(df["edu_url"].unique())
-else:
-    filter_set = set(df["url"].unique())
-
-
-def collect_trackers(type, year):
-    """collect trackers from specific year
-
-    Args:
-        type (_type_): edu or non-edu
-        year (_type_): specific year
-    """
-
-    files = sorted(glob.glob(f"dataset_archive/{type}/{year}/*.gz"))
-
-    urls = []
-    trackesr = []
-    for file in tqdm(files):
-        file_name = file.split("/")[-1].replace(".gz", "")
-        if file_name not in filter_set:
-            continue
-        result = process_warc_from_archive(file, parser=get_text_selectolax)
-        if result:
-            url, tracker_list = result
-            urls.append(file_name)
-            trackesr.append(tracker_list)
-        else:
-            # if result is None, it means this file can not be archved by the waybackpy
-            url = file.split("/")[-1][:-3]
-            tracker_list = None
-            urls.append(file_name)
-            trackesr.append(tracker_list)
-            print("empty file", file)
-
-    df_edu_history = pd.DataFrame({"url": urls, "3p-domain": trackesr})
-    df_edu_history.to_csv(
-        f"dataset_archive/{type}_{args['tracker_type']}_{year}.csv", index=None
-    )
 
 
 ################################### store the zip file from historical trackers from Internet Archive ###############################
@@ -231,23 +176,23 @@ def test_archive():
 
 def collecting_single_thread():
     df = pd.read_json(
-        args_.input_path,
+        args.input_path,
         lines=True,
     )
 
-    fout = open(args_.output_path + f"/archived_websites_{args_.year}.csv", "w")
+    fout = open(args.output_path + f"/archived_websites_{args.year}.csv", "w")
     for e, item in df.iterrows():
-        if args_.wandb:
+        if args.wandb:
             wandb.log({"progress": e, "total": len(df)})
         hostname = item["hostname"]
         history_url = item["url"]
         if history_url in ["NAN", "DEAD"]:
             fout.write(hostname + "\t" + "EMPTY_URL" + "\n")
             continue
-        time.sleep(args_.sleep_second)
+        time.sleep(args.sleep_second)
         logger.info(f"collecting number:{e}:{hostname}")
         trackers = extract_trackers_from_internet_archive(
-            history_url, get_text_selectolax, if_wandb=args_.wandb
+            history_url, get_text_selectolax, if_wandb=args.wandb
         )
         if trackers == []:
             fout.write(hostname + "\t" + "NO_TRACKERS" + "\n")
@@ -262,26 +207,26 @@ def collecting_single_thread():
 
 if __name__ == "__main__":
 
-    if args_.wandb:
+    if args.wandb:
         run = wandb.init(
             project="websci",
             group="IA",
-            job_type=f"collect_historical_trackers{args_.year}",
+            job_type=f"collect_historical_trackers{args.year}",
             config={
-                "year": args_.year,
+                "year": args.year,
             },
         )
-    if args_.unit_test:
+    if args.unit_test:
         test_archive()
-    elif args_.multi_process:
+    elif args.multi_process:
         import json
 
         df = pd.read_json(
-            args_.input_path,
+            args.input_path,
             lines=True,
         )
 
-        fout = open(args_.output_path + f"/archived_websites_{args_.year}.csv", "w")
+        fout = open(args.output_path + f"/archived_websites_{args.year}.csv", "w")
 
         def collect_trackers_from_map_ia(row):
             try:
@@ -289,10 +234,10 @@ if __name__ == "__main__":
                 history_url = row["url"]
                 if history_url in ["NAN", "DEAD"]:
                     return hostname + "\t" + "EMPTY_URL" + "\n"
-                time.sleep(args_.sleep_second)
+                time.sleep(args.sleep_second)
                 logger.info(f"collecting number:{hostname}")
                 trackers = extract_trackers_from_internet_archive(
-                    history_url, get_text_selectolax, if_wandb=args_.wandb
+                    history_url, get_text_selectolax, if_wandb=args.wandb
                 )
                 if trackers == []:
                     fout.write(hostname + "\t" + "NO_TRACKERS" + "\n")
@@ -306,20 +251,20 @@ if __name__ == "__main__":
             except Exception as e:
                 print(e)
 
-        pool = mp.Pool(args_.num_process)
+        pool = mp.Pool(args.num_process)
         v = json.loads(df.to_json(orient="records"))
         # pool.map(collect_trackers_from_map_cc, list(v))
         for i, _ in enumerate(
             tqdm(pool.imap_unordered(collect_trackers_from_map_ia, v), total=len(df))
         ):
-            if args_.wandb:
+            if args.wandb:
                 wandb.log({"progress": i + 1})
         pool.close()
         pool.join()
 
     else:
         collecting_single_thread()
-    if args_.wandb:
+    if args.wandb:
         run.finish()
 
 #################################### colllecting outlinks from Internet Archive ###############################
