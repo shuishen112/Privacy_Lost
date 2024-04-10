@@ -67,8 +67,6 @@ parser.add_argument(
 
 args = parser.parse_args()
 
-fout = open(args.output_path + f"/archived_websites_{args.year}.json", "w")
-
 
 def collect_trackers_from_map_ia(row):
     try:
@@ -77,7 +75,7 @@ def collect_trackers_from_map_ia(row):
         # get historical url
 
         if history_url in ["NAN", "DEAD"]:
-            return hostname + "\t" + "EMPTY_URL" + "\n"
+            return json.dumps({"hostname": hostname, "trackers": "EMPTY_URL"}) + "\n"
         fields = history_url.split("/")
         fields[4] = fields[4] + "id_"
         history_url = "/".join(fields)
@@ -86,16 +84,13 @@ def collect_trackers_from_map_ia(row):
             history_url, get_text_selectolax, if_wandb=args.wandb
         )
         if trackers == []:
-            fout.write(
-                json.dumps({"hostname": hostname, "trackers": "NO_TRACKERS"}) + "\n"
-            )
+            return json.dumps({"hostname": hostname, "trackers": "NO_TRACKERS"}) + "\n"
         elif trackers == "REFUSED":
-            fout.write(json.dumps({"hostname": hostname, "trackers": "REFUSED"}) + "\n")
+            return json.dumps({"hostname": hostname, "trackers": "REFUSED"}) + "\n"
         elif trackers == "DEAD":
-            fout.write(json.dumps({"hostname": hostname, "trackers": "DEAD"}) + "\n")
+            return json.dumps({"hostname": hostname, "trackers": "DEAD"}) + "\n"
         else:
-            fout.write(json.dumps({"hostname": hostname, "trackers": trackers}) + "\n")
-        fout.flush()
+            return json.dumps({"hostname": hostname, "trackers": trackers}) + "\n"
     except Exception as e:
         # print(history_url)
         print(e)

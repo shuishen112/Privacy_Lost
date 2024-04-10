@@ -172,13 +172,15 @@ if __name__ == "__main__":
             args.input_path,
             lines=True,
         )
-
+        fout = open(args.output_path + f"/archived_websites_{args.year}.json", "w")
         pool = mp.Pool(args.num_process)
         v = json.loads(df.to_json(orient="records"))
         # pool.map(collect_trackers_from_map_cc, list(v))
-        for i, _ in enumerate(
+        for i, result in enumerate(
             tqdm(pool.imap_unordered(collect_trackers_from_map_ia, v), total=len(df))
         ):
+            fout.write(result)
+            fout.flush()
             if args.wandb:
                 wandb.log({"progress": i + 1})
         pool.close()
