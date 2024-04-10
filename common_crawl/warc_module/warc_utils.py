@@ -82,16 +82,15 @@ def get_domain_from_ia(url, is_register_domain=False):
         return None
     if is_string_an_url(url):
         # if http in path
-        path = urlparse(url).path
-        if "http" in path:
-            url = "https://{}".format(path.split("//")[-1])
-
+        # path = urlparse(url).path
+        # if "http" in path:
+        #     url = "https://{}".format(path.split("//")[-1])
         domain = str(urlparse(url).netloc)
         if is_register_domain:
             domain = tldextract.extract(str(urlparse(url).netloc)).domain
         # ignore the "archive"
-        if "archive." in domain:
-            return None
+        # if "archive." in domain:
+        #     return None
         if domain not in domain_url:
             domain_url[domain] = url
     else:

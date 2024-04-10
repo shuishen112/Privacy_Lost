@@ -168,10 +168,12 @@ t = time.time()
 
 # only test one historical snapshot
 def test_archive():
-    history_url = "https://web.archive.org/web/20230324224114/http://investwell.app/"
+    history_url = "https://web.archive.org/web/20230127201823/https://e-tender.ua/"
+    fields = history_url.split("/")
+    fields[4] = fields[4] + "id_"
+    history_url = "/".join(fields)
     trackers = extract_trackers_from_internet_archive(history_url, get_text_selectolax)
     print(f"len:{len(trackers)}", trackers)
-    print("trackers:", trackers)
 
 
 def collecting_single_thread():
@@ -186,6 +188,11 @@ def collecting_single_thread():
             wandb.log({"progress": e, "total": len(df)})
         hostname = item["hostname"]
         history_url = item["url"]
+
+        fields = history_url.split("/")
+        fields[4] = fields[4] + "id_"
+        history_url = "/".join(fields)
+        
         if history_url in ["NAN", "DEAD"]:
             fout.write(hostname + "\t" + "EMPTY_URL" + "\n")
             continue
@@ -232,6 +239,11 @@ if __name__ == "__main__":
             try:
                 hostname = row["hostname"]
                 history_url = row["url"]
+                # get historical url
+                fields = history_url.split("/")
+                fields[4] = fields[4] + "id_"
+                history_url = "/".join(fields)
+
                 if history_url in ["NAN", "DEAD"]:
                     return hostname + "\t" + "EMPTY_URL" + "\n"
                 time.sleep(args.sleep_second)
