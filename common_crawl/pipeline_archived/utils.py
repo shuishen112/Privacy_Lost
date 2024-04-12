@@ -83,23 +83,26 @@ def collect_dataset(row, year):
         print(e)
 
 
-def extract_trackers_from_internet_archive(url, parser, if_wandb=False):
+def extract_trackers_from_internet_archive(url, parser, if_wandb=False, using_zyte=False):
 
-    api = os.environ.get("API", None)
-
-    assert api is not None
+    if using_zyte:
+        api = os.environ.get("API", None)
+        assert api is not None
     try:
         url_host_name = get_domain_from_ia(url)
-        resp = requests.get(
-            url,
-            headers={"Accept-Encoding": "identity"},
-            proxies={
-                "http": f"http://{api}:@api.zyte.com:8011/",
-                "https": f"http://{api}:@api.zyte.com:8011/",
-            },
-            verify="zyte/zyte-ca.crt",  # your path to the certificate
-            stream=True,
-        )
+        if not using_zyte:
+            resp = requests.get(url,headers={"Accept-Encoding": "identity"},stream=True,)
+        else:
+            resp = requests.get(
+                url,
+                headers={"Accept-Encoding": "identity"},
+                proxies={
+                    "http": f"http://{api}:@api.zyte.com:8011/",
+                    "https": f"http://{api}:@api.zyte.com:8011/",
+                },
+                verify="zyte/zyte-ca.crt",  # your path to the certificate
+                stream=True,
+            )
 
         text = resp.text
         trackers = parser(text, source="ia")

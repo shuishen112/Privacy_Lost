@@ -92,8 +92,18 @@ parser.add_argument(
     help="number of processes",
 )
 
+parser.add_argument(
+    "--zyte",
+    action="store_true",
+    help="zyte",
+)
+
 
 args = parser.parse_args()
+
+if args.zyte:
+    api = os.environ.get("API", None)
+    assert api is not None
 
 if args.wandb:
     wandb.login()
@@ -138,18 +148,19 @@ def get_specific_time_url(url, time_start, time_end):
     # )
 
     link = f"https://web.archive.org/cdx/search/cdx?url={url}&from={time_start}&to={time_end}&limit=1&output=json&fl=timestamp,original"
-    api = os.environ.get("API", None)
 
-    assert api is not None
     try:
-        text = requests.get(
-            link,
-            proxies={
-                "http": f"http://{api}:@api.zyte.com:8011/",
-                "https": f"http://{api}:@api.zyte.com:8011/",
-            },
-            verify="zyte/zyte-ca.crt",  # your path to the certificate
-        ).text
+        if not args.zyte:
+            text = requests.get(link).text
+        else:
+            text = requests.get(
+                link,
+                proxies={
+                    "http": f"http://{api}:@api.zyte.com:8011/",
+                    "https": f"http://{api}:@api.zyte.com:8011/",
+                },
+                verify="zyte/zyte-ca.crt",  # your path to the certificate
+            ).text
         # f = urlopen(link)
         # text = f.read()
         list_archive = json.loads(text)
