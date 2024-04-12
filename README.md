@@ -155,6 +155,8 @@ Web Tracking Evolution](common_crawl/README.md)
 
 # Internet Archive 
 
+When you want to use the multi-thread, it is better to use zyte with --zyte, you can also use it when you use single-thread. 
+
 ## Scanning process:
 
 ### Single-thread
@@ -166,8 +168,10 @@ In this case, we scan the snapshot from 2003.
 
 ### Multi-thread
 
+
+
 ```
-python pipeline_scan/scanning_by_CDXServer.py --year=2003 --input_data_path=communication_conference/complete_list.csv --output_dir=debug --list_begin=30000 --list_end=60000 --sleep_second=0 --multi_process --num_process=48
+python pipeline_scan/scanning_by_CDXServer.py --year=2003 --input_data_path=communication_conference/complete_list.csv --output_dir=debug --list_begin=30000 --list_end=60000 --sleep_second=0 --multi_process --num_process=48 --zyte
  ```
 ## Collecting trackers:
 
@@ -187,7 +191,7 @@ python pipeline_archived/collecting_trackers_from_archive.py --year=2023 --input
 ### Multi-thread
 
 ```
-python pipeline_archived/collecting_trackers_from_archive.py --year=2023 --input_path=debug/hostname_historical_year_2023_30000_60000.json  --output_path=debug --sleep_second=0 --multi_process --num_process=48
+python pipeline_archived/collecting_trackers_from_archive.py --year=2023 --input_path=debug/hostname_historical_year_2023_30000_60000.json  --output_path=debug --sleep_second=0 --multi_process --num_process=48 --zyte
 ```
 
 
