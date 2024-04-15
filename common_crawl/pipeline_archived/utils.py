@@ -83,15 +83,20 @@ def collect_dataset(row, year):
         print(e)
 
 
-def extract_trackers_from_internet_archive(url, parser, if_wandb=False, using_zyte=False):
-
+def extract_trackers_from_internet_archive(
+    url, parser, if_wandb=False, using_zyte=False, outgoing_link=False
+):
     if using_zyte:
         api = os.environ.get("API", None)
         assert api is not None
     try:
         url_host_name = get_domain_from_ia(url)
         if not using_zyte:
-            resp = requests.get(url,headers={"Accept-Encoding": "identity"},stream=True,)
+            resp = requests.get(
+                url,
+                headers={"Accept-Encoding": "identity"},
+                stream=True,
+            )
         else:
             resp = requests.get(
                 url,
@@ -105,11 +110,16 @@ def extract_trackers_from_internet_archive(url, parser, if_wandb=False, using_zy
             )
 
         text = resp.text
-        trackers = parser(text, source="ia")
+        trackers, outgoing_links = parser(
+            text, source="ia", outgoing_link=outgoing_link
+        )
         # filter the trackers that are not in the same url_host_name
         trackers = [tracker for tracker in trackers if tracker not in url_host_name]
         trackers = list(set(trackers))
-        return trackers
+        if outgoing_link:
+            outgoing_links = [link for link in outgoing_links if link not in url]
+            outgoing_links = list(set(outgoing_links))
+        return trackers, outgoing_links
 
     except Exception as e:
         # if connection error, sleep 5min seconds and try again
