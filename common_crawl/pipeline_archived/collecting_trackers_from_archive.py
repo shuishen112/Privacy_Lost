@@ -84,6 +84,12 @@ parser.add_argument(
     help="zyte",
 )
 
+parser.add_argument(
+    "--outgoing_link",
+    action="store_true",
+    help="outgoing_link",
+)
+
 args = parser.parse_args()
 
 
@@ -99,15 +105,26 @@ def collect_trackers_from_map_ia(row):
         fields[4] = fields[4] + "id_"
         history_url = "/".join(fields)
         time.sleep(args.sleep_second)
-        trackers = extract_trackers_from_internet_archive(
-            history_url, get_text_selectolax, if_wandb=args.wandb, using_zyte=args.zyte
+        trackers, outgoing_links = extract_trackers_from_internet_archive(
+            history_url,
+            get_text_selectolax,
+            if_wandb=args.wandb,
+            using_zyte=args.zyte,
+            outgoing_link=args.outgoing_link,
         )
-        if trackers == []:
+        if args.outgoing_link and outgoing_links is not None:
+            return (
+                json.dumps(
+                    {
+                        "hostname": hostname,
+                        "trackers": trackers,
+                        "outgoing_links": outgoing_links,
+                    }
+                )
+                + "\n"
+            )
+        elif trackers == []:
             return json.dumps({"hostname": hostname, "trackers": "NO_TRACKERS"}) + "\n"
-        elif trackers == "REFUSED":
-            return json.dumps({"hostname": hostname, "trackers": "REFUSED"}) + "\n"
-        elif trackers == "DEAD":
-            return json.dumps({"hostname": hostname, "trackers": "DEAD"}) + "\n"
         else:
             return json.dumps({"hostname": hostname, "trackers": trackers}) + "\n"
     except Exception as e:
@@ -207,7 +224,12 @@ def test_archive():
     fields = history_url.split("/")
     fields[4] = fields[4] + "id_"
     history_url = "/".join(fields)
-    trackers = extract_trackers_from_internet_archive(history_url, get_text_selectolax)
+    trackers, outgoing_links = extract_trackers_from_internet_archive(
+        history_url,
+        get_text_selectolax,
+        using_zyte=True,
+        outgoing_link=True,
+    )
     print(f"len:{len(trackers)}", trackers)
 
 
@@ -217,7 +239,7 @@ def collecting_single_thread():
         lines=True,
     )
 
-    fout = open(args.output_path + f"/archived_websites_{args.year}.csv", "w")
+    fout = open(args.output_path + f"/archived_websites_{args.year}.json", "w")
     for e, item in df.iterrows():
         if args.wandb:
             wandb.log({"progress": e, "total": len(df)})
@@ -232,17 +254,27 @@ def collecting_single_thread():
         history_url = "/".join(fields)
         time.sleep(args.sleep_second)
         logger.info(f"collecting number:{e}:{hostname}")
-        trackers = extract_trackers_from_internet_archive(
-            history_url, get_text_selectolax, if_wandb=args.wandb, using_zyte=args.zyte
+        trackers, outgoing_links = extract_trackers_from_internet_archive(
+            history_url,
+            get_text_selectolax,
+            if_wandb=args.wandb,
+            using_zyte=args.zyte,
+            outgoing_link=args.outgoing_link,
         )
-        if trackers == []:
-            fout.write(hostname + "\t" + "NO_TRACKERS" + "\n")
-        elif trackers == "REFUSED":
-            fout.write(hostname + "\t" + "REFUSED" + "\n")
-        elif trackers == "DEAD":
-            fout.write(hostname + "\t" + "DEAD" + "\n")
+        if args.outgoing_link and outgoing_links is not None:
+            fout.write(
+                json.dumps(
+                    {
+                        "hostname": hostname,
+                        "trackers": trackers,
+                        "outgoing_links": outgoing_links,
+                    }
+                )
+                + "\n"
+            )
         else:
-            fout.write(hostname + "\t" + ",".join(trackers) + "\n")
+            fout.write(json.dumps({"hostname": hostname, "trackers": trackers}) + "\n")
+            # fout.write(hostname + "\t" + ",".join(trackers) + "\n")
         fout.flush()
 
 

@@ -254,7 +254,7 @@ def get_description_from_cc(html):
 
 
 # now is to collecting from cc
-def get_text_selectolax(html, source="cc"):
+def get_text_selectolax(html, source="cc", outgoing_link=False):
     """extracting the tracker domain from html file
 
     Args:
@@ -264,6 +264,7 @@ def get_text_selectolax(html, source="cc"):
         _type_: _description_
     """
     trackers = []
+    links = []
     tree = HTMLParser(html)
     if tree.body is None:
         return trackers
@@ -283,6 +284,8 @@ def get_text_selectolax(html, source="cc"):
 
             if "href" in node.attributes:
                 url = node.attributes["href"]
+                if "http" in url:
+                    links.append(url)
                 domain = get_domain(url)
                 if domain:
                     if tracker_type == "all":
@@ -291,6 +294,8 @@ def get_text_selectolax(html, source="cc"):
                         trackers.append(domain)
             if "src" in node.attributes:
                 url = node.attributes["src"]
+                if "http" in url:
+                    links.append(url)
                 domain = get_domain(url)
                 if domain:
                     if tracker_type == "all":
@@ -300,6 +305,8 @@ def get_text_selectolax(html, source="cc"):
 
             if "onclick" in node.attributes:
                 url = node.attributes["onclick"]
+                if "http" in url:
+                    links.append(url)
                 if "window.open" in url:
                     url = url.replace("window.open(", "")
                     url = url.replace("+", "")
@@ -320,6 +327,8 @@ def get_text_selectolax(html, source="cc"):
             ):
                 result = re.findall(regex, text)
                 for url in result:
+                    if "http" in url:
+                        links.append(url)
                     domain = get_domain(url)
 
                     if domain:
@@ -329,7 +338,9 @@ def get_text_selectolax(html, source="cc"):
                             trackers.append(domain)
     except Exception as e:
         print(e)
-    return trackers
+    if outgoing_link:
+        return trackers, links
+    return trackers, None
 
 
 def read_doc(record, parser=get_text_selectolax):
