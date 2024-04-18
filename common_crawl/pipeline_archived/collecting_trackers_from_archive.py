@@ -14,10 +14,7 @@ import argparse
 
 sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
 
-from warc_module.warc_utils import (
-    get_text_selectolax,
-    get_outer_link,
-)
+from warc_module.warc_utils import get_text_selectolax
 from utils import extract_trackers_from_internet_archive
 
 parser = argparse.ArgumentParser()
@@ -90,6 +87,12 @@ parser.add_argument(
     help="outgoing_link",
 )
 
+parser.add_argument(
+    "--get_description",
+    action="store_true",
+    help="get_description",
+)
+
 args = parser.parse_args()
 
 
@@ -105,28 +108,25 @@ def collect_trackers_from_map_ia(row):
         fields[4] = fields[4] + "id_"
         history_url = "/".join(fields)
         time.sleep(args.sleep_second)
-        trackers, outgoing_links = extract_trackers_from_internet_archive(
+        example = extract_trackers_from_internet_archive(
             history_url,
             get_text_selectolax,
             if_wandb=args.wandb,
             using_zyte=args.zyte,
             outgoing_link=args.outgoing_link,
+            get_description=args.get_description,
         )
-        if args.outgoing_link and outgoing_links is not None:
-            return (
-                json.dumps(
-                    {
-                        "hostname": hostname,
-                        "trackers": trackers,
-                        "outgoing_links": outgoing_links,
-                    }
-                )
-                + "\n"
+        return (
+            json.dumps(
+                {
+                    "hostname": hostname,
+                    "trackers": example.trackers,
+                    "outgoing_links": example.outgoing_links,
+                    "description": example.description,
+                }
             )
-        elif trackers == []:
-            return json.dumps({"hostname": hostname, "trackers": "NO_TRACKERS"}) + "\n"
-        else:
-            return json.dumps({"hostname": hostname, "trackers": trackers}) + "\n"
+            + "\n"
+        )
     except Exception as e:
         # print(history_url)
         print(e)
@@ -224,13 +224,13 @@ def test_archive():
     fields = history_url.split("/")
     fields[4] = fields[4] + "id_"
     history_url = "/".join(fields)
-    trackers, outgoing_links = extract_trackers_from_internet_archive(
+    example = extract_trackers_from_internet_archive(
         history_url,
         get_text_selectolax,
         using_zyte=True,
         outgoing_link=True,
     )
-    print(f"len:{len(trackers)}", trackers)
+    print(f"len:{len(example.trackers)}", example.trackers)
 
 
 def collecting_single_thread():
@@ -247,34 +247,44 @@ def collecting_single_thread():
         history_url = item["url"]
 
         if history_url in ["NAN", "DEAD"]:
-            fout.write(hostname + "\t" + "EMPTY_URL" + "\n")
+            fout.write(
+                json.dumps(
+                    {
+                        "hostname": hostname,
+                        "trackers": "EMPTY_URL",
+                        "outgoing_links": None,
+                        "desciptions": None,
+                    }
+                )
+                + "\n"
+            )
             continue
         fields = history_url.split("/")
         fields[4] = fields[4] + "id_"
         history_url = "/".join(fields)
         time.sleep(args.sleep_second)
         logger.info(f"collecting number:{e}:{hostname}")
-        trackers, outgoing_links = extract_trackers_from_internet_archive(
+        example = extract_trackers_from_internet_archive(
             history_url,
             get_text_selectolax,
             if_wandb=args.wandb,
             using_zyte=args.zyte,
             outgoing_link=args.outgoing_link,
+            get_description=args.get_description,
         )
-        if args.outgoing_link and outgoing_links is not None:
-            fout.write(
-                json.dumps(
-                    {
-                        "hostname": hostname,
-                        "trackers": trackers,
-                        "outgoing_links": outgoing_links,
-                    }
-                )
-                + "\n"
+
+        fout.write(
+            json.dumps(
+                {
+                    "hostname": hostname,
+                    "trackers": example.trackers,
+                    "outgoing_links": example.outgoing_links,
+                    "descriptions": example.descriptions,
+                }
             )
-        else:
-            fout.write(json.dumps({"hostname": hostname, "trackers": trackers}) + "\n")
-            # fout.write(hostname + "\t" + ",".join(trackers) + "\n")
+            + "\n"
+        )
+
         fout.flush()
 
 

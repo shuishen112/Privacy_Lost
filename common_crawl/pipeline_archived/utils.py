@@ -15,12 +15,28 @@ from tqdm import tqdm
 import os
 import wandb
 from warc_module.warc_utils import get_domain_from_ia
+from warc_module.warc_utils import get_description_from_html
 import time
 
 tqdm.pandas()
 
 # from pandarallel import pandarallel
 # pandarallel.initialize(progress_bar=True)
+
+
+class Example:
+    trackers = None
+    outgoing_links = None
+    descriptions = None
+
+    def __init__(self, trackers):
+        self.trackers = trackers
+
+    def set_outgoing_links(self, outgoing_links):
+        self.outgoing_links = outgoing_links
+
+    def set_descriptions(self, descriptions):
+        self.descriptions = descriptions
 
 
 def get_historical_url(type, url, year):
@@ -84,7 +100,12 @@ def collect_dataset(row, year):
 
 
 def extract_trackers_from_internet_archive(
-    url, parser, if_wandb=False, using_zyte=False, outgoing_link=False
+    url,
+    parser,
+    if_wandb=False,
+    using_zyte=False,
+    outgoing_link=False,
+    get_description=False,
 ):
     if using_zyte:
         api = os.environ.get("API", None)
@@ -116,10 +137,15 @@ def extract_trackers_from_internet_archive(
         # filter the trackers that are not in the same url_host_name
         trackers = [tracker for tracker in trackers if tracker not in url_host_name]
         trackers = list(set(trackers))
+        example = Example(trackers)
         if outgoing_link:
             outgoing_links = [link for link in outgoing_links if link not in url]
             outgoing_links = list(set(outgoing_links))
-        return trackers, outgoing_links
+            example.set_outgoing_links(outgoing_links)
+        if get_description:
+            descriptions = get_description_from_html(text)
+            example.set_descriptions(descriptions)
+        return example
 
     except Exception as e:
         # if connection error, sleep 5min seconds and try again

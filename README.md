@@ -169,10 +169,10 @@ In this case, we scan the snapshot from 2003.
 ### Multi-thread
 
 
-
 ```
 python pipeline_scan/scanning_by_CDXServer.py --year=2003 --input_data_path=communication_conference/complete_list.csv --output_dir=debug --list_begin=30000 --list_end=60000 --sleep_second=0 --multi_process --num_process=48 --zyte
  ```
+
 ## Collecting trackers:
 
 ### Unit test 
@@ -194,7 +194,25 @@ python pipeline_archived/collecting_trackers_from_archive.py --year=2023 --input
 python pipeline_archived/collecting_trackers_from_archive.py --year=2023 --input_path=debug/hostname_historical_year_2023_30000_60000.json  --output_path=debug --sleep_second=0 --multi_process --num_process=48 --zyte
 ```
 
+### Additional Features:
 
+- using wandb if you want to watch the collecting process from wandb project
+```
+--wandb
+```
+
+- add outgoing links: 
+
+```
+--outgoing_link
+```
+
+- get destription 
+
+```
+--get_description
+
+```
 # COMMON CRAWL
 ## Unit test
 
@@ -260,8 +278,7 @@ Distributed under the MIT License. See `LICENSE.txt` for more information.
 
 <!-- CONTACT -->
 ## Contact
-
-Your Name - [@twitter_handle](https://twitter.com/twitter_handle) - zhan.su@di.ku.dk
+zhan.su@di.ku.dk
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 

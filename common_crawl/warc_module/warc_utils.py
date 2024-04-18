@@ -227,7 +227,7 @@ def get_outer_link(html):
 
 
 # get the description from the html file
-def get_description_from_cc(html):
+def get_description_from_html(html):
     """get description from the html file
 
     Args:
@@ -358,7 +358,9 @@ def read_doc(record, parser=get_text_selectolax):
     return url, text
 
 
-def process_warc_from_archive(filename, offset=None, length=None, parser=None):
+def process_warc_from_archive(
+    filename, offset=None, length=None, parser=None, get_description=False
+):
     with open(filename, "rb") as stream:
         for record in ArchiveIterator(stream):
             url = record.rec_headers.get_header("WARC-Target-URI")
@@ -384,7 +386,7 @@ def process_warc_froms3(
         trackers = parser(text)
         trackers = list(set(trackers))
         if get_description:
-            description = get_description_from_cc(text)
+            description = get_description_from_html(text)
             return (url, ",".join(trackers), description)
         return (url, ",".join(trackers))
 
