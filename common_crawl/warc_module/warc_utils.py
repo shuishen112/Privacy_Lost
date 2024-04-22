@@ -68,6 +68,21 @@ tracker_list = list(map(lambda x: tldextract.extract(x).domain, tracker_list))
 domain_url = {}
 
 
+class Example:
+    trackers = None
+    outgoing_links = None
+    descriptions = None
+
+    def __init__(self, trackers):
+        self.trackers = trackers
+
+    def set_outgoing_links(self, outgoing_links):
+        self.outgoing_links = outgoing_links
+
+    def set_descriptions(self, descriptions):
+        self.descriptions = descriptions
+
+
 def get_domain_from_ia(url, is_register_domain=False):
     """
     extract the domain from Internet Archive resource
@@ -314,7 +329,7 @@ def get_text_selectolax(html, source="cc", outgoing_link=False):
                     url = url.replace("'", "")
                     url = url.replace(" ", "")
                     url = url.split(";")[0]
-                    domain = domain = get_domain(url)
+                    domain = get_domain(url)
                     if domain:
                         if tracker_type == "all":
                             trackers.append(domain)
@@ -373,7 +388,12 @@ def process_warc_from_archive(
 
 
 def process_warc_froms3(
-    file_name, offset=None, length=None, parser=None, get_description=False
+    file_name,
+    offset=None,
+    length=None,
+    parser=None,
+    get_description=False,
+    outgoing_link=False,
 ):
     s3 = boto3.client("s3")
     offset_end = offset + length - 1
@@ -383,12 +403,16 @@ def process_warc_froms3(
     for record in ArchiveIterator(resp):
         url = record.rec_headers.get_header("WARC-Target-URI")
         text = record.content_stream().read()
-        trackers = parser(text)
+        trackers, outgoing_links = parser(text)
         trackers = list(set(trackers))
+        example = Example(trackers)
         if get_description:
             description = get_description_from_html(text)
-            return (url, ",".join(trackers), description)
-        return (url, ",".join(trackers))
+            example.set_descriptions(description)
+        if outgoing_link:
+            example.set_outgoing_links(outgoing_links)
+
+        return example
 
 
 def download_warc_froms3(filename, offset, length):

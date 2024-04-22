@@ -60,6 +60,7 @@ argparser.add_argument(
 )
 argparser.add_argument(
     "--single_process",
+    action="store_true",
     help="single process collecting",
 )
 
@@ -71,9 +72,8 @@ argparser.add_argument(
 
 argparser.add_argument(
     "--get_description",
-    type=bool,
-    default=False,
-    help="collect description",
+    action="store_true",
+    help="get description",
 )
 
 argparser.add_argument(
@@ -129,15 +129,7 @@ def unit_test(args):
 
 def single_process(args):
     fout = open(f"{args.output_dir}", "w", encoding="utf-8")
-    df = pd.read_csv("resource/england.csv")[
-        [
-            "url_host_name",
-            "warc_filename",
-            "year",
-            "warc_record_offset",
-            "warc_record_length",
-        ]
-    ]
+    df = pd.read_csv(f"{args.input_path}", skiprows=args.skiprows)
 
     def collect_trackers_from_map_cc(row, fout):
         try:
@@ -145,17 +137,25 @@ def single_process(args):
             warc_filename = row["warc_filename"]
             offset = row["warc_record_offset"]
             length = row["warc_record_length"]
-            url, trackers = process_warc_froms3(
+            example = process_warc_froms3(
                 warc_filename,
                 offset=offset,
                 length=length,
                 parser=get_text_selectolax,
                 get_description=args.get_description,
             )
-            line = url_host_name + "\t" + trackers + "\n"
-            fout.write(line)
+
+            fout.write(
+                json.dumps(
+                    {
+                        "hostname": url_host_name,
+                        "trackers": example.trackers,
+                        "descriptions": example.descriptions,
+                    }
+                )
+                + "\n"
+            )
             fout.flush()
-            return trackers
         except Exception as e:
             print(e)
 
@@ -179,44 +179,25 @@ if __name__ == "__main__":
                 offset = row["warc_record_offset"]
                 length = row["warc_record_length"]
                 time_stamp = int(row["warc_filename"].split("/")[5].split("-")[2][2:10])
-                if args.get_description:
-                    url, trackers, description = process_warc_froms3(
-                        warc_filename,
-                        offset=offset,
-                        length=length,
-                        parser=get_text_selectolax,
-                        get_description=args.get_description,
-                    )
-                    write_json = json.dumps(
+                example = process_warc_froms3(
+                    warc_filename,
+                    offset=offset,
+                    length=length,
+                    parser=get_text_selectolax,
+                    get_description=args.get_description,
+                )
+
+                fout.write(
+                    json.dumps(
                         {
-                            "url_host_name": url_host_name,
-                            "trackers": trackers,
-                            "description": description,
+                            "hostname": url_host_name,
+                            "trackers": example.trackers,
+                            "time_stamp": time_stamp,
+                            "descriptions": example.descriptions,
                         }
                     )
-                else:
-                    url, trackers = process_warc_froms3(
-                        warc_filename,
-                        offset=offset,
-                        length=length,
-                        parser=get_text_selectolax,
-                        get_description=args.get_description,
-                    )
-                    if args.time_stamp:
-                        write_json = json.dumps(
-                            {
-                                "url_host_name": url_host_name,
-                                "trackers": trackers,
-                                "time_stamp": time_stamp,
-                            }
-                        )
-                    else:
-                        write_json = json.dumps(
-                            {"url_host_name": url_host_name, "trackers": trackers}
-                        )
-                # line = url_host_name + "\t" + trackers + "\n"
-                # print(line)
-                fout.write(write_json + "\n")
+                    + "\n"
+                )
                 fout.flush()
             except Exception as e:
                 print(e)
