@@ -228,7 +228,7 @@ python pipeline_archived/collecting_trackers_from_cc.py --unit_test
 ## Crawling from common crawl
 
 ```
-python pipeline_archived/collecting_trackers_from_cc.py --input_path=communication_conference/CC/historical_scan/6.5_snapshot_2021_host_name.csv --num_process=96 --multi_process --output_dir=communication_conference/CC/historical_trackers/6.5_2021_with_description.json --get_description=True --group=CC_description --wandb
+python pipeline_archived/collecting_trackers_from_cc.py --input_path=complete_list/CC/scanning/complete_list_scanning_cc_2013.csv --multi_process --num_process=96 --output_dir=complete_list/CC/archive_trackers/complete_list_archive_cc_2013.json --get_description
 
 ```
 

@@ -282,7 +282,7 @@ def get_text_selectolax(html, source="cc", outgoing_link=False):
     links = []
     tree = HTMLParser(html)
     if tree.body is None:
-        return trackers
+        return trackers, None  # none means the outgoing links is None
     for node in tree.tags("style"):
         node.decompose()
 
@@ -299,7 +299,7 @@ def get_text_selectolax(html, source="cc", outgoing_link=False):
 
             if "href" in node.attributes:
                 url = node.attributes["href"]
-                if "http" in url:
+                if url and "http" in url:
                     links.append(url)
                 domain = get_domain(url)
                 if domain:
@@ -309,7 +309,7 @@ def get_text_selectolax(html, source="cc", outgoing_link=False):
                         trackers.append(domain)
             if "src" in node.attributes:
                 url = node.attributes["src"]
-                if "http" in url:
+                if url and "http" in url:
                     links.append(url)
                 domain = get_domain(url)
                 if domain:
@@ -320,9 +320,9 @@ def get_text_selectolax(html, source="cc", outgoing_link=False):
 
             if "onclick" in node.attributes:
                 url = node.attributes["onclick"]
-                if "http" in url:
+                if url and "http" in url:
                     links.append(url)
-                if "window.open" in url:
+                if url and "window.open" in url:
                     url = url.replace("window.open(", "")
                     url = url.replace("+", "")
                     url = url.replace(")", "")
@@ -342,7 +342,7 @@ def get_text_selectolax(html, source="cc", outgoing_link=False):
             ):
                 result = re.findall(regex, text)
                 for url in result:
-                    if "http" in url:
+                    if url and "http" in url:
                         links.append(url)
                     domain = get_domain(url)
 
@@ -352,7 +352,7 @@ def get_text_selectolax(html, source="cc", outgoing_link=False):
                         elif domain in tracker_list:
                             trackers.append(domain)
     except Exception as e:
-        print(e)
+        print("error is in get_text_selectolax", e)
     if outgoing_link:
         return trackers, links
     return trackers, None
@@ -399,20 +399,24 @@ def process_warc_froms3(
     offset_end = offset + length - 1
     byte_range = "bytes={offset}-{end}".format(offset=offset, end=offset_end)
     resp = s3.get_object(Bucket="commoncrawl", Key=file_name, Range=byte_range)["Body"]
-
-    for record in ArchiveIterator(resp):
-        url = record.rec_headers.get_header("WARC-Target-URI")
-        text = record.content_stream().read()
-        trackers, outgoing_links = parser(text)
-        trackers = list(set(trackers))
-        example = Example(trackers)
-        if get_description:
-            description = get_description_from_html(text)
-            example.set_descriptions(description)
-        if outgoing_link:
-            example.set_outgoing_links(outgoing_links)
-
-        return example
+    try:
+        for record in ArchiveIterator(resp):
+            url = record.rec_headers.get_header("WARC-Target-URI")
+            text = record.content_stream().read()
+            fields = parser(text)
+            trackers = fields[0]
+            outgoing_links = fields[1]
+            trackers = list(set(trackers))
+            example = Example(trackers)
+            if get_description:
+                description = get_description_from_html(text)
+                example.set_descriptions(description)
+            if outgoing_link:
+                example.set_outgoing_links(outgoing_links)
+            return example
+    except Exception as e:
+        print("error is process_warc_froms3", e)
+        print(fields)
 
 
 def download_warc_froms3(filename, offset, length):

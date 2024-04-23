@@ -116,15 +116,27 @@ def collect_trackers_from_cc(row):
 
 
 def unit_test(args):
-    url, trackers, description = process_warc_froms3(
-        "crawl-data/CC-MAIN-2015-14/segments/1427131298015.2/warc/CC-MAIN-20150323172138-00061-ip-10-168-14-71.ec2.internal.warc.gz",
-        offset=882944732,
-        length=10489,
+    example = process_warc_froms3(
+        "crawl-data/CC-MAIN-2013-20/segments/1368711005985/warc/CC-MAIN-20130516133005-00010-ip-10-60-113-184.ec2.internal.warc.gz",
+        offset=634421693,
+        length=26133,
         parser=get_text_selectolax,
         get_description=True,
     )
-    print(trackers)
-    print("description:", description)
+
+    with open("unit_test.json", "w", encoding="utf-8") as fout:
+        fout.write(
+            json.dumps(
+                {
+                    "hostname": "test",
+                    "trackers": example.trackers,
+                    "descriptions": example.descriptions,
+                },
+                ensure_ascii=False,
+            )
+        )
+    print(example.trackers)
+    print("description:", example.descriptions)
 
 
 def single_process(args):
@@ -151,7 +163,8 @@ def single_process(args):
                         "hostname": url_host_name,
                         "trackers": example.trackers,
                         "descriptions": example.descriptions,
-                    }
+                    },
+                    ensure_ascii=False,
                 )
                 + "\n"
             )
@@ -170,7 +183,7 @@ if __name__ == "__main__":
     elif args.unit_test:
         unit_test(args)
     elif args.multi_process:
-        fout = open(f"{args.output_dir}", "a", encoding="utf-8")
+        fout = open(f"{args.output_dir}", "w", encoding="utf-8")
 
         def collect_trackers_from_map_cc(row):
             try:
@@ -194,13 +207,14 @@ if __name__ == "__main__":
                             "trackers": example.trackers,
                             "time_stamp": time_stamp,
                             "descriptions": example.descriptions,
-                        }
+                        },
+                        ensure_ascii=False,
                     )
                     + "\n"
                 )
                 fout.flush()
             except Exception as e:
-                print(e)
+                print("error is in collect_trackers_from_map_cc", e)
 
         df = pd.read_csv(f"{args.input_path}", skiprows=args.skiprows)
 
