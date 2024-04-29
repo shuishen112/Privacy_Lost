@@ -403,7 +403,7 @@ def process_warc_froms3(
         for record in ArchiveIterator(resp):
             url = record.rec_headers.get_header("WARC-Target-URI")
             text = record.content_stream().read()
-            fields = parser(text)
+            fields = parser(text, source="cc", outgoing_link=outgoing_link)
             trackers = fields[0]
             outgoing_links = fields[1]
             trackers = list(set(trackers))

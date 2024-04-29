@@ -77,6 +77,12 @@ argparser.add_argument(
 )
 
 argparser.add_argument(
+    "--outgoing_link",
+    action="store_true",
+    help="get outgoing link",
+)
+
+argparser.add_argument(
     "--group",
     type=str,
     default="CC",
@@ -122,6 +128,7 @@ def unit_test(args):
         length=26133,
         parser=get_text_selectolax,
         get_description=True,
+        outgoing_link=True,
     )
 
     with open("unit_test.json", "w", encoding="utf-8") as fout:
@@ -130,6 +137,7 @@ def unit_test(args):
                 {
                     "hostname": "test",
                     "trackers": example.trackers,
+                    "outgoing_links": example.outgoing_links,
                     "descriptions": example.descriptions,
                 },
                 ensure_ascii=False,
@@ -198,6 +206,7 @@ if __name__ == "__main__":
                     length=length,
                     parser=get_text_selectolax,
                     get_description=args.get_description,
+                    outgoing_link=args.outgoing_link,
                 )
 
                 fout.write(
@@ -206,6 +215,7 @@ if __name__ == "__main__":
                             "hostname": url_host_name,
                             "trackers": example.trackers,
                             "time_stamp": time_stamp,
+                            "outgoing_links": example.outgoing_links,
                             "descriptions": example.descriptions,
                         },
                         ensure_ascii=False,
