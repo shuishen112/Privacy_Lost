@@ -78,7 +78,9 @@
   </ol>
 </details>
 
+## News
 
+- 20240522. Add get country from the domain. 
 
 <!-- ABOUT THE PROJECT -->
 ## About The Project
@@ -238,7 +240,11 @@ _For more examples, please refer to the [Documentation](https://example.com)_ --
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
+# Get country from domain info. 
 
+```
+python pipeline_scan/get_country_from_domain.py --input_path=pipeline_scan/domain_com_1000.txt  --output_path=pipeline_scan/domain_country_debug.json --num_process=5 --multi_process
+```
 
 <!-- ROADMAP -->
 ## Roadmap
