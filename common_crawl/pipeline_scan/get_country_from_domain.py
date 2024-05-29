@@ -53,9 +53,9 @@ def get_country_from_whois(hostname):
         return (
             json.dumps(
                 {"domain": domain, "info": json_format["country"]},
-                # indent=4,
-                # sort_keys=True,
-                # default=str,
+                indent=4,
+                sort_keys=True,
+                default=str,
             )
             + "\n"
         )

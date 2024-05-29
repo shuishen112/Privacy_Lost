@@ -183,6 +183,40 @@ def single_process(args):
     df.progress_apply(collect_trackers_from_map_cc, axis=1, args=(fout,))
 
 
+def collect_trackers_from_map_cc(row):
+    try:
+        url_host_name = row["url_host_name"]
+        warc_filename = row["warc_filename"]
+        offset = row["warc_record_offset"]
+        length = row["warc_record_length"]
+        time_stamp = int(row["warc_filename"].split("/")[5].split("-")[2][2:10])
+        example = process_warc_froms3(
+            warc_filename,
+            offset=offset,
+            length=length,
+            parser=get_text_selectolax,
+            get_description=args.get_description,
+            outgoing_link=args.outgoing_link,
+        )
+
+        return (
+            json.dumps(
+                {
+                    "hostname": url_host_name,
+                    "trackers": example.trackers,
+                    "time_stamp": time_stamp,
+                    "outgoing_links": example.outgoing_links,
+                    "descriptions": example.descriptions,
+                },
+                ensure_ascii=False,
+            )
+            + "\n"
+        )
+
+    except Exception as e:
+        print("error is in collect_trackers_from_map_cc", e)
+
+
 if __name__ == "__main__":
     time_start = time.time()
 
@@ -193,50 +227,19 @@ if __name__ == "__main__":
     elif args.multi_process:
         fout = open(f"{args.output_dir}", "w", encoding="utf-8")
 
-        def collect_trackers_from_map_cc(row):
-            try:
-                url_host_name = row["url_host_name"]
-                warc_filename = row["warc_filename"]
-                offset = row["warc_record_offset"]
-                length = row["warc_record_length"]
-                time_stamp = int(row["warc_filename"].split("/")[5].split("-")[2][2:10])
-                example = process_warc_froms3(
-                    warc_filename,
-                    offset=offset,
-                    length=length,
-                    parser=get_text_selectolax,
-                    get_description=args.get_description,
-                    outgoing_link=args.outgoing_link,
-                )
-
-                fout.write(
-                    json.dumps(
-                        {
-                            "hostname": url_host_name,
-                            "trackers": example.trackers,
-                            "time_stamp": time_stamp,
-                            "outgoing_links": example.outgoing_links,
-                            "descriptions": example.descriptions,
-                        },
-                        ensure_ascii=False,
-                    )
-                    + "\n"
-                )
-                fout.flush()
-            except Exception as e:
-                print("error is in collect_trackers_from_map_cc", e)
-
         df = pd.read_csv(f"{args.input_path}", skiprows=args.skiprows)
 
         v = json.loads(df.to_json(orient="records"))
         pool = mp.Pool(args.num_process)
 
         # pool.map(collect_trackers_from_map_cc, list(v))
-        for i, _ in enumerate(
+        for i, result in enumerate(
             tqdm(pool.imap_unordered(collect_trackers_from_map_cc, v), total=len(df))
         ):
             if args.wandb:
                 wandb.log({"progress": i + 1})
+            fout.write(result)
+            fout.flush()
         pool.close()
         pool.join()
         if args.wandb:

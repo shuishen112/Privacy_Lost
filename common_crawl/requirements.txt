@@ -2,3 +2,5 @@ wandb
 warcio
 boto3
 validators==0.18.2
+selectolax
+tldextract
