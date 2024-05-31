@@ -315,8 +315,9 @@ if __name__ == "__main__":
         for i, result in enumerate(
             tqdm(pool.imap_unordered(collect_trackers_from_map_ia, v), total=len(df))
         ):
-            fout.write(result)
-            fout.flush()
+            if result is not None:
+                fout.write(result)
+                fout.flush()
             if args.wandb:
                 wandb.log({"progress": i + 1})
         pool.close()

@@ -238,8 +238,9 @@ if __name__ == "__main__":
         ):
             if args.wandb:
                 wandb.log({"progress": i + 1})
-            fout.write(result)
-            fout.flush()
+            if result:
+                fout.write(result)
+                fout.flush()
         pool.close()
         pool.join()
         if args.wandb:
