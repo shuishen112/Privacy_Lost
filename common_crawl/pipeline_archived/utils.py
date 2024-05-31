@@ -107,6 +107,9 @@ def extract_trackers_from_internet_archive(
     outgoing_link=False,
     get_description=False,
 ):
+    if using_zyte:
+        api = os.environ.get("API", None)
+        assert api is not None
     try:
         url_host_name = get_domain_from_ia(url)
         if not using_zyte:
