@@ -122,7 +122,7 @@ def collect_trackers_from_map_ia(row):
                     "hostname": hostname,
                     "trackers": example.trackers,
                     "outgoing_links": example.outgoing_links,
-                    "description": example.description,
+                    "description": example.descriptions,
                 }
             )
             + "\n"
