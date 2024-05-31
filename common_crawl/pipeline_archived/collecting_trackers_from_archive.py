@@ -290,6 +290,9 @@ def collecting_single_thread():
 
 if __name__ == "__main__":
 
+    if args.zyte:
+        api = os.environ.get("API", None)
+        assert api is not None
     if args.wandb:
         run = wandb.init(
             project="websci",
